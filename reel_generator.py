@@ -296,7 +296,7 @@ first_comment = (f"🔽 جواب: {str(total_hits).translate(FA)} برخورد!\
                  else f"🎯 این یکی {str(total_hits).translate(FA)} بار به حلقه خورد. حدست چند بود؟")
 
 meta = {
-    "seed": SEED, "hits": total_hits, "duration": round(DUR, 2),
+    "seed": SEED, "format": "ring", "hits": total_hits, "duration": round(DUR, 2),
     "instagram_caption": caption,
     "first_comment": first_comment,
     # cover = a frame with the ball already large, hook text visible, ending not revealed
