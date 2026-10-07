@@ -55,6 +55,8 @@ HOOKS = [
 ]
 HOOK = rng.choice(HOOKS)
 END_TEXT = rng.choice(["حدست درست بود؟", "چندتا حدس زده بودی؟", "عدد حدسیت رو کامنت کن"])
+END_TEXT2 = rng.choice(["فردا یکی دیگه میاد، فالو یادت نره", "برای فردا فالو کن", "فالو کن تا فردایی رو از دست ندی"])
+HANDLE = "@barkhord.tv"
 FA = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 
 # ---------------- physics ----------------
@@ -162,6 +164,8 @@ BG = Image.fromarray(np.clip(grad * (1 - 0.35 * xx ** 2)[..., None], 0, 255).ast
 font_hook = ImageFont.truetype(FONT, 76, layout_engine=RQ)
 font_lbl = ImageFont.truetype(FONT_MED, 46, layout_engine=RQ)
 font_end = ImageFont.truetype(FONT, 84, layout_engine=RQ)
+font_end2 = ImageFont.truetype(FONT_MED, 50, layout_engine=RQ)
+font_wm = ImageFont.truetype(FONT_MED, 36, layout_engine=RQ)
 cnt_fonts = {}
 def cnt_font(sz):
     if sz not in cnt_fonts:
@@ -248,8 +252,13 @@ for fi in range(N):
             direction="rtl", language="fa")
     if burst and bt > 0.35:
         a = int(255 * min(1, (bt - 0.35) / 0.3))
-        td.text((W / 2, C[1]), END_TEXT, font=font_end, fill=(255, 255, 255, a), anchor="mm",
+        td.text((W / 2, C[1] - 40), END_TEXT, font=font_end, fill=(255, 255, 255, a), anchor="mm",
                 direction="rtl", language="fa")
+    if burst and bt > 0.8:
+        a = int(255 * min(1, (bt - 0.8) / 0.3))
+        td.text((W / 2, C[1] + 70), END_TEXT2, font=font_end2, fill=rgb(hcur, 0.8, 0.75, a), anchor="mm",
+                direction="rtl", language="fa")
+    td.text((W / 2, H - 110), HANDLE, font=font_wm, fill=(255, 255, 255, 110), anchor="mm")
     ff.stdin.write(frame.convert("RGB").tobytes())
     if os.environ.get("PREVIEW") and fi in (N // 3, int(T_FILL * FPS) - 2, int((T_FILL + 0.8) * FPS)):
         frame.convert("RGB").save(f"{OUT}.preview_{fi:04d}.png")
@@ -257,11 +266,41 @@ for fi in range(N):
 ff.stdin.close(); ff.wait()
 shutil.rmtree(WORK, ignore_errors=True)
 
+# ---------------- caption: hook line, short body, one call to action, few focused hashtags ----------------
+CAP_HOOKS = [
+    "قبل از اینکه ببینی، یه عدد حدس بزن 🎯",
+    "صدا رو زیاد کن و تا ثانیه‌ی آخر ببین 🔊",
+    "آخرش رو هیچکس پیش‌بینی نمی‌کنه 💥",
+    "آرامش‌بخش‌ترین ۱۵ ثانیه‌ی امروزت 😌",
+    "فقط تا آخرش ببین… 👀",
+    "این توپ چندبار به حلقه می‌خوره؟ 🤔",
+]
+CAP_BODIES = [
+    "هر بار که توپ به حلقه می‌خوره، یه کم بزرگ‌تر می‌شه و یه نت بالاتر می‌زنه… تا جایی که دیگه جا نمی‌شه.",
+    "یه توپ، یه حلقه، و یه پایان که انتظارش رو نداری.",
+    "با هر برخورد بزرگ‌تر، سریع‌تر و پرصداتر… ببین آخرش چی می‌شه.",
+    "فیزیک واقعی، صدای واقعی، بدون هیچ تدوینی.",
+]
+CAP_CTAS = [
+    "تعداد برخوردها رو قبل از آخر ویدیو تو کامنت حدس بزن 👇 جواب تو کامنت اوله!",
+    "اینو برای کسی بفرست که امروز به یه کم آرامش نیاز داره 💌",
+    "سیوش کن برای وقتایی که حوصله‌ت سر رفته 📌",
+    "کدوم رنگش رو بیشتر دوست داشتی؟ تو کامنت بگو 🎨",
+]
+TAG_FA = ["#لذت_بخش", "#آرامش", "#ریلز", "#فیزیک", "#ویدیو_آرامش_بخش", "#انیمیشن"]
+TAG_EN = ["#satisfying", "#oddlysatisfying", "#satisfyingvideo", "#physics", "#relaxing", "#asmr", "#reels"]
+cta = rng.choice(CAP_CTAS)
+tags = rng.sample(TAG_FA, 3) + rng.sample(TAG_EN, 3)
+caption = f"{rng.choice(CAP_HOOKS)}\n\n{rng.choice(CAP_BODIES)}\n\n{cta}\n\n{HANDLE} | هر روز یه برخورد جدید\n\n" + " ".join(tags)
+first_comment = (f"🔽 جواب: {str(total_hits).translate(FA)} برخورد!\nحدست چند بود؟ 👇" if "حدس" in cta
+                 else f"🎯 این یکی {str(total_hits).translate(FA)} بار به حلقه خورد. حدست چند بود؟")
+
 meta = {
     "seed": SEED, "hits": total_hits, "duration": round(DUR, 2),
-    "instagram_caption": f"{HOOK} 👀\nتو کامنت بنویس چندتا برخورد حدس زدی 👇\n\n#ریلز #لذت_بخش #فیزیک #satisfying #physics #oddlysatisfying #reels",
-    "youtube_title": f"{HOOK} #shorts",
-    "youtube_description": "تا آخر ببین 👀\n#shorts #satisfying #physics #oddlysatisfying",
+    "instagram_caption": caption,
+    "first_comment": first_comment,
+    # cover = a frame with the ball already large, hook text visible, ending not revealed
+    "cover_ms": int(T_FILL * 0.82 * 1000),
 }
 with open(os.path.splitext(OUT)[0] + ".json", "w", encoding="utf-8") as fh:
     json.dump(meta, fh, ensure_ascii=False, indent=2)
