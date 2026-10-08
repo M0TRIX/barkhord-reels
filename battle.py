@@ -53,6 +53,14 @@ elif FORMAT == "cities":
     TEAMS = [(names[i], hexc(cols[i])) for i in range(n)]
     HOOK, SUB = "کدوم شهر می‌بره؟", "شهرتو کامنت کن، نوبت اونم میشه"
     CTA_END = "شهر تو نبود؟ کامنت کن"
+elif FORMAT == "cup":
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import cup
+    CUP_STATE, CUP_R, CUP_M, ca_, cb_ = cup.next_match(SEED)
+    col_a, col_b = cup.colors_for(CUP_R, CUP_M, CUP_STATE["season"])
+    TEAMS = [(ca_, hexc(col_a)), (cb_, hexc(col_b))]
+    HOOK, SUB = f"{ca_} یا {cb_}؟", "جام شهرها · " + cup.match_label(CUP_R, CUP_M)
+    CTA_END = ""
 else:
     pool = [("قرمز", "#E63946"), ("آبی", "#2A9DF4"), ("زرد", "#F4B400"), ("سبز", "#2DC653"), ("بنفش", "#A855F7")]
     n = rng.choice([2, 3, 4])
@@ -72,7 +80,7 @@ BATTLE, OUTRO = 18.0, 3.0
 DUR = BATTLE + OUTRO
 N = int(DUR * FPS)
 AX, AY, AS = 60, 540, 960           # arena square
-GN = 24                             # grid cells per side
+GN = 25 if FORMAT == "cup" else 24  # grid cells per side (odd count = no ties)
 CS = AS / GN
 BR = 17                             # ball radius
 SPEED = rng.uniform(700, 820)
@@ -83,7 +91,8 @@ if NT == 2:
     vertical = rng.random() < 0.5
     for i in range(GN):
         for j in range(GN):
-            grid[j, i] = (0 if i >= GN // 2 else 1) if vertical else (0 if j < GN // 2 else 1)   # team 0 on the right, like the bar
+            # team 0 on the right/top, like the bar; works for odd GN (sides differ by one cell)
+            grid[j, i] = (0 if i * GN + j >= GN * GN // 2 else 1) if vertical else (0 if j * GN + i < (GN * GN + 1) // 2 else 1)
 elif NT == 3:
     for i in range(GN):
         grid[:, i] = 2 - min(2, i * 3 // GN)
@@ -175,6 +184,18 @@ for fi in range(int(BATTLE * FPS) + 1):
 final_share = frames_share[-1]
 WIN = int(np.argmax(final_share))
 WIN_PCT = int(round(final_share[WIN] * 100))
+CARD_SUB = f"{fa(WIN_PCT)}٪ زمین رو گرفت"
+FOLLOW_LINE = "فالو کن که بعدی رو از دست ندی"
+if FORMAT == "cup":
+    CUP_INFO = cup.record(CUP_STATE, CUP_R, CUP_M, TEAMS[WIN][0])
+    if CUP_INFO["champion"]:
+        CARD_SUB = "قهرمان جام شهرها شد!"
+        CTA_END = "فصل بعد: شهرت رو کامنت کن"
+    else:
+        CARD_SUB = f"رفت {CUP_INFO['advanced_to']}"
+        na, nb = CUP_INFO["next"]
+        CTA_END = f"بازی بعد: {na} و {nb}"
+    FOLLOW_LINE = "فالو کن ببینی کی میره بالا"
 lead_changes = sum(1 for a, b in zip(frames_share[FPS::FPS], frames_share[2 * FPS::FPS]) if np.argmax(a) != np.argmax(b))
 print(f"seed={SEED} format={FORMAT} teams={[t[0] for t in TEAMS]} winner={TEAMS[WIN][0]} {WIN_PCT}% lead_changes={lead_changes} boosts={boosts}")
 if os.environ.get("DRY"):
@@ -282,8 +303,11 @@ def draw_balls(img, pos):
     img.alpha_composite(glow)
     img.alpha_composite(lay.resize((W, H), Image.LANCZOS))
 
-def text(img, xy, s, size, col=(255, 255, 255, 255), bold=True):
-    ImageDraw.Draw(img).text(xy, s, font=F(size, bold), fill=col, anchor="mm", direction="rtl", language="fa")
+def text(img, xy, s, size, col=(255, 255, 255, 255), bold=True, max_w=960):
+    d = ImageDraw.Draw(img)
+    while size > 24 and d.textlength(s, font=F(size, bold), direction="rtl", language="fa") > max_w:
+        size -= 2
+    d.text(xy, s, font=F(size, bold), fill=col, anchor="mm", direction="rtl", language="fa")
 
 ff = subprocess.Popen([
     "ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
@@ -353,12 +377,12 @@ for fi in range(N):
                             outline=shade(TEAMS[WIN][1], 1.4) + (int(255 * sc),), width=6)
         if sc >= 1:
             text(img, (W / 2, cy - 100), "برنده", 52, (255, 255, 255, 200), bold=False)
-            text(img, (W / 2, cy), TEAMS[WIN][0], 120)
-            text(img, (W / 2, cy + 110), f"{fa(WIN_PCT)}٪ زمین رو گرفت", 50, (255, 255, 255, 220), bold=False)
+            text(img, (W / 2, cy), TEAMS[WIN][0], 120, max_w=800)
+            text(img, (W / 2, cy + 110), CARD_SUB, 50, (255, 255, 255, 220), bold=False, max_w=800)
         if bt > 0.7:
             text(img, (W / 2, AY + AS + 90), CTA_END, 58, shade(TEAMS[WIN][1], 1.45) + (255,))
         if bt > 1.2:
-            text(img, (W / 2, AY + AS + 170), "فالو کن که بعدی رو از دست ندی", 42, (255, 255, 255, 200), bold=False)
+            text(img, (W / 2, AY + AS + 170), FOLLOW_LINE, 42, (255, 255, 255, 200), bold=False)
     ImageDraw.Draw(img).text((W / 2, H - 110), "@barkhord.tv", font=F(36, False), fill=(255, 255, 255, 110), anchor="mm")
     ff.stdin.write(img.convert("RGB").tobytes())
     if os.environ.get("PREVIEW") and fi in (int(1.0 * FPS), int(BOOST_TIMES[0] * FPS) + 8, int(10 * FPS), int((BATTLE + 1.2) * FPS)):
@@ -370,7 +394,11 @@ shutil.rmtree(WORK, ignore_errors=True)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import captions
 names = [t[0] for t in TEAMS]
-caption, first = getattr(captions, FORMAT)(rng, names, TEAMS[WIN][0])
+if FORMAT == "cup":
+    caption, first = captions.cup(rng, names, TEAMS[WIN][0], cup.ROUND_NAMES[CUP_R], CUP_INFO)
+    cup.save(CUP_STATE)
+else:
+    caption, first = getattr(captions, FORMAT)(rng, names, TEAMS[WIN][0])
 meta = {"seed": SEED, "format": FORMAT, "teams": names, "winner": TEAMS[WIN][0], "winner_pct": WIN_PCT,
         "duration": DUR, "instagram_caption": caption, "first_comment": first, "cover_ms": int(9.5 * 1000)}
 with open(os.path.splitext(OUT)[0] + ".json", "w", encoding="utf-8") as fh:

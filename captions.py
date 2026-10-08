@@ -96,3 +96,23 @@ def ring(rng, hits):
     caption = f"{first_line}\n\n{second_line}\n\n#satisfying #oddlysatisfying #ریلز"
     first = f"جواب: {fa(hits)} بار 😁 حدست چند بود؟"
     return caption, first
+
+
+def cup(rng, names, winner, round_name, info):
+    a, b = names
+    first_line = rng.choice([
+        f"جام شهرها 🏆 {round_name}\n{a} یا {b}؟",
+        f"{a} یا {b}؟ 🔥\nجام شهرها، {round_name}",
+    ])
+    second_line = rng.choice([
+        "شهرت تو جدوله؟ فالو کن که بازیش از دستت نره 👇",
+        "طرفدار کدومی؟ کامنت کن 👇",
+        "شهرت نیست؟ کامنت کن، فصل بعد میاد 👇",
+    ])
+    caption = f"{first_line}\n\n{second_line}\n\n#جام_شهرها {tag(a)} {tag(b)} #ایران"
+    if info["champion"]:
+        first = f"🏆 {winner} قهرمان شد!\nفصل بعد کدوم شهرها باشن؟ کامنت کنید 👇"
+    else:
+        na, nb = info["next"]
+        first = f"✅ {winner} رفت {info['advanced_to']}\n🔜 بازی بعد: {na} و {nb}\nشهر تو کجای جدوله؟ 👇"
+    return caption, first
