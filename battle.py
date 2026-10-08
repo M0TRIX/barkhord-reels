@@ -44,21 +44,21 @@ CITIES = ["تهران", "مشهد", "اصفهان", "شیراز", "تبریز", 
 if FORMAT == "derby":
     TEAMS = [("پرسپولیس", hexc("#E3262E")), ("استقلال", hexc("#1F63C6"))]
     rng.shuffle(TEAMS)
-    HOOK, SUB = "پرسپولیس یا استقلال؟", "قبل از پایان، تیمت رو کامنت کن"
-    CTA_END = "تیمت رو کامنت کن"
+    HOOK, SUB = "پرسپولیس یا استقلال؟", "تا تموم نشده تیمتو بنویس"
+    CTA_END = "تیمت برد؟"
 elif FORMAT == "cities":
     n = rng.choice([3, 4, 4])
     names = rng.sample(CITIES, n)
     cols = rng.sample(CITY_COLORS, n)
     TEAMS = [(names[i], hexc(cols[i])) for i in range(n)]
-    HOOK, SUB = "نبرد شهرها: کدوم می‌بره؟", "شهر خودت رو کامنت کن"
-    CTA_END = "شهر خودت رو کامنت کن"
+    HOOK, SUB = "کدوم شهر می‌بره؟", "شهرتو کامنت کن، نوبت اونم میشه"
+    CTA_END = "شهر تو نبود؟ کامنت کن"
 else:
     pool = [("قرمز", "#E63946"), ("آبی", "#2A9DF4"), ("زرد", "#F4B400"), ("سبز", "#2DC653"), ("بنفش", "#A855F7")]
     n = rng.choice([2, 3, 4])
     TEAMS = [(nm, hexc(c)) for nm, c in rng.sample(pool, n)]
-    HOOK, SUB = "یه رنگ انتخاب کن…", "ببینیم کدوم می‌بره"
-    CTA_END = "رنگت برد؟ کامنت کن"
+    HOOK, SUB = "یه رنگ انتخاب کن", "ببین می‌بره یا نه"
+    CTA_END = "رنگت برد؟"
 NT = len(TEAMS)
 
 def shade(c, k):  # k<1 darker, k>1 lighter
@@ -325,7 +325,7 @@ for fi in range(N):
                 cy = AY + 100
                 d.rounded_rectangle([200, cy - 50 * pop, 880, cy + 50 * pop], 36,
                                     fill=shade(c, 0.55) + (int(a * 0.92),), outline=shade(c, 1.4) + (a,), width=5)
-                text(img, (W / 2, cy), f"حمله‌ی {TEAMS[team][0]}!", int(50 * pop), (255, 255, 255, a))
+                text(img, (W / 2, cy), f"{TEAMS[team][0]} حمله کرد!", int(50 * pop), (255, 255, 255, a))
     else:
         bt = tnow - BATTLE
         if final_frame is None:
@@ -354,9 +354,11 @@ for fi in range(N):
         if sc >= 1:
             text(img, (W / 2, cy - 100), "برنده", 52, (255, 255, 255, 200), bold=False)
             text(img, (W / 2, cy), TEAMS[WIN][0], 120)
-            text(img, (W / 2, cy + 110), f"با {fa(WIN_PCT)}٪ زمین", 50, (255, 255, 255, 220), bold=False)
+            text(img, (W / 2, cy + 110), f"{fa(WIN_PCT)}٪ زمین رو گرفت", 50, (255, 255, 255, 220), bold=False)
         if bt > 0.7:
             text(img, (W / 2, AY + AS + 90), CTA_END, 58, shade(TEAMS[WIN][1], 1.45) + (255,))
+        if bt > 1.2:
+            text(img, (W / 2, AY + AS + 170), "فالو کن که بعدی رو از دست ندی", 42, (255, 255, 255, 200), bold=False)
     ImageDraw.Draw(img).text((W / 2, H - 110), "@barkhord.tv", font=F(36, False), fill=(255, 255, 255, 110), anchor="mm")
     ff.stdin.write(img.convert("RGB").tobytes())
     if os.environ.get("PREVIEW") and fi in (int(1.0 * FPS), int(BOOST_TIMES[0] * FPS) + 8, int(10 * FPS), int((BATTLE + 1.2) * FPS)):
@@ -365,35 +367,10 @@ ff.stdin.close(); ff.wait()
 shutil.rmtree(WORK, ignore_errors=True)
 
 # ---------------- caption ----------------
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import captions
 names = [t[0] for t in TEAMS]
-if FORMAT == "derby":
-    caption = rng.choice([
-        "دربی این بار تو زمین ما برگزار شد ⚽️🔴🔵",
-        "پرسپولیسی‌ها و استقلالی‌ها جمع شن 👀🔴🔵",
-        "سرخابی‌ها، این یکی رو از دست ندید ⚽️",
-    ]) + "\n\nهر توپ خونه‌های حریف رو تصاحب می‌کنه… تا سوت پایان کی بیشتر زمین می‌گیره؟\n\n" + rng.choice([
-        "قبل از تموم شدن ویدیو، تیمت رو کامنت کن 👇",
-        "طرفدار کدومی؟ کامنت کن ببینیم کدوم تیم طرفدار بیشتری داره 👇",
-    ]) + "\n\n#پرسپولیس #استقلال #دربی #فوتبال #لذت_بخش #satisfying"
-    first = "🔴 پرسپولیسی‌ها لایک کنن این کامنت رو\n🔵 استقلالی‌ها ریپلای بزنن\nببینیم کدوم بیشتره 😏"
-elif FORMAT == "cities":
-    caption = rng.choice([
-        f"نبرد شهرها 🏙️ امروز: {'، '.join(names)}",
-        f"{'، '.join(names[:-1])} یا {names[-1]}؟ 🏙️",
-    ]) + "\n\nهر شهر یه توپ داره و خونه‌های بقیه رو تصاحب می‌کنه. آخرش کی بیشترین سهم رو داره؟\n\n" + rng.choice([
-        "شهر تو کدومه؟ کامنت کن، شاید پارت بعد نوبت شهر تو باشه 👀",
-        "اگه شهرت نبود ناراحت نشو، کامنتش کن تا پارت‌های بعدی بیاد 👇",
-    ]) + "\n\n#نبرد_شهرها #ایران #" + names[0].replace(" ", "_") + " #لذت_بخش #satisfying #simulation"
-    first = "شهرهای پیشنهادیتون برای پارت بعد رو اینجا بنویسید 👇🏙️"
-else:
-    caption = rng.choice([
-        "قبل از اینکه ببینی، یه رنگ انتخاب کن 🎨",
-        f"{'، '.join(names[:-1])} یا {names[-1]}؟ زود انتخاب کن 👀",
-    ]) + "\n\nهر رنگ یه توپ داره و خونه‌های بقیه رو رنگ خودش می‌کنه… آخرش کی برنده‌ست؟\n\n" + rng.choice([
-        "رنگت رو کامنت کن ببینیم چند نفر درست حدس زدن 👇",
-        "رنگی که انتخاب کردی برد؟ کامنت کن 👇",
-    ]) + "\n\n#لذت_بخش #رنگ #ریلز #satisfying #oddlysatisfying #simulation"
-    first = f"🏆 برنده‌ی این دست: {TEAMS[WIN][0]}\nتو کدوم رو انتخاب کرده بودی؟"
+caption, first = getattr(captions, FORMAT)(rng, names, TEAMS[WIN][0])
 meta = {"seed": SEED, "format": FORMAT, "teams": names, "winner": TEAMS[WIN][0], "winner_pct": WIN_PCT,
         "duration": DUR, "instagram_caption": caption, "first_comment": first, "cover_ms": int(9.5 * 1000)}
 with open(os.path.splitext(OUT)[0] + ".json", "w", encoding="utf-8") as fh:

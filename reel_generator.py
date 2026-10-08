@@ -48,14 +48,14 @@ BG_HUE = rng.random()
 HOOKS = [
     "این توپ تا کجا بزرگ می‌شه؟",
     "تا آخر ببین چی می‌شه",
-    "حدس بزن چندتا برخورد می‌خوره",
+    "حدس بزن چندبار می‌خوره به حلقه",
     "آخرش رو از دست نده",
     "صدا رو زیاد کن",
-    "کی حلقه رو پر می‌کنه؟",
+    "آخرش چی میشه؟",
 ]
 HOOK = rng.choice(HOOKS)
-END_TEXT = rng.choice(["حدست درست بود؟", "چندتا حدس زده بودی؟", "عدد حدسیت رو کامنت کن"])
-END_TEXT2 = rng.choice(["فردا یکی دیگه میاد، فالو یادت نره", "برای فردا فالو کن", "فالو کن تا فردایی رو از دست ندی"])
+END_TEXT = rng.choice(["حدست درست بود؟", "چندتا حدس زده بودی؟", "عددتو کامنت کن"])
+END_TEXT2 = rng.choice(["فردا یکی دیگه میاد، فالو یادت نره", "برای فردا فالو کن", "فالو کن که بعدی رو از دست ندی"])
 HANDLE = "@barkhord.tv"
 FA = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 
@@ -266,34 +266,10 @@ for fi in range(N):
 ff.stdin.close(); ff.wait()
 shutil.rmtree(WORK, ignore_errors=True)
 
-# ---------------- caption: hook line, short body, one call to action, few focused hashtags ----------------
-CAP_HOOKS = [
-    "قبل از اینکه ببینی، یه عدد حدس بزن 🎯",
-    "صدا رو زیاد کن و تا ثانیه‌ی آخر ببین 🔊",
-    "آخرش رو هیچکس پیش‌بینی نمی‌کنه 💥",
-    "آرامش‌بخش‌ترین ۱۵ ثانیه‌ی امروزت 😌",
-    "فقط تا آخرش ببین… 👀",
-    "این توپ چندبار به حلقه می‌خوره؟ 🤔",
-]
-CAP_BODIES = [
-    "هر بار که توپ به حلقه می‌خوره، یه کم بزرگ‌تر می‌شه و یه نت بالاتر می‌زنه… تا جایی که دیگه جا نمی‌شه.",
-    "یه توپ، یه حلقه، و یه پایان که انتظارش رو نداری.",
-    "با هر برخورد بزرگ‌تر، سریع‌تر و پرصداتر… ببین آخرش چی می‌شه.",
-    "فیزیک واقعی، صدای واقعی، بدون هیچ تدوینی.",
-]
-CAP_CTAS = [
-    "تعداد برخوردها رو قبل از آخر ویدیو تو کامنت حدس بزن 👇 جواب تو کامنت اوله!",
-    "اینو برای کسی بفرست که امروز به یه کم آرامش نیاز داره 💌",
-    "سیوش کن برای وقتایی که حوصله‌ت سر رفته 📌",
-    "کدوم رنگش رو بیشتر دوست داشتی؟ تو کامنت بگو 🎨",
-]
-TAG_FA = ["#لذت_بخش", "#آرامش", "#ریلز", "#فیزیک", "#ویدیو_آرامش_بخش", "#انیمیشن"]
-TAG_EN = ["#satisfying", "#oddlysatisfying", "#satisfyingvideo", "#physics", "#relaxing", "#asmr", "#reels"]
-cta = rng.choice(CAP_CTAS)
-tags = rng.sample(TAG_FA, 3) + rng.sample(TAG_EN, 3)
-caption = f"{rng.choice(CAP_HOOKS)}\n\n{rng.choice(CAP_BODIES)}\n\n{cta}\n\n{HANDLE} | هر روز یه برخورد جدید\n\n" + " ".join(tags)
-first_comment = (f"🔽 جواب: {str(total_hits).translate(FA)} برخورد!\nحدست چند بود؟ 👇" if "حدس" in cta
-                 else f"🎯 این یکی {str(total_hits).translate(FA)} بار به حلقه خورد. حدست چند بود؟")
+# ---------------- caption ----------------
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import captions
+caption, first_comment = captions.ring(rng, total_hits)
 
 meta = {
     "seed": SEED, "format": "ring", "hits": total_hits, "duration": round(DUR, 2),
