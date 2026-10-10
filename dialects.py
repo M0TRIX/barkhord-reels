@@ -6,7 +6,7 @@ simply gets no bubble. The owner checks every line before it goes out.
 """
 LINES = {
     "تبریز": ("یاشاسین تبریز!", "قارداش، گؤردون؟"),
-    "تهران": ("داداش، بزن بریم!", "داداش، کم آوردی؟"),
+    "تهران": ("بچه طهرون باخت نمیده!", "داداش، کم آوردی؟"),
     "شیراز": ("کاکو، بیا جلو!", "کاکو، دیدی چه کردیم؟"),
     "مشهد": ("ها، مو آمدُم!", "ها والا، بُردُم!"),
     # plain colloquial Persian until the owner sends real Nahavandi lines
