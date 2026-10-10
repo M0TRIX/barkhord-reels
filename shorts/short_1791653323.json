@@ -1,0 +1,56 @@
+{
+  "seed": 1791653323,
+  "format": "worldcup",
+  "teams": [
+    "Netherlands",
+    "Portugal"
+  ],
+  "winner": "Portugal",
+  "lead_pct_at_whistle": 52,
+  "powers": [
+    [
+      "clone",
+      "Portugal"
+    ],
+    [
+      "hammer",
+      "Netherlands"
+    ],
+    [
+      "shield",
+      "Portugal"
+    ],
+    [
+      "clone",
+      "Portugal"
+    ],
+    [
+      "hammer",
+      "Netherlands"
+    ],
+    [
+      "hammer",
+      "Portugal"
+    ]
+  ],
+  "new_powers": [
+    "hammer",
+    "shield"
+  ],
+  "duration": 24.7,
+  "instagram_caption": "Netherlands or Portugal? 🔥 World Cup of Countries, Round of 32\n\nWho are you cheering for? 👇\nSubscribe so you don't miss your country's next match!\n\n🆕 New power: GIANT HAMMER, SHIELD\n\n#worldcup #countries #Netherlands #Portugal #simulation #satisfying #shorts",
+  "first_comment": "✅ Portugal advance to the Round of 16\n🔜 Next: Mexico vs Philippines",
+  "youtube_title": "Netherlands or Portugal? Who wins? 🌍 Round of 32 #shorts",
+  "youtube_tags": [
+    "Netherlands",
+    "Portugal",
+    "world cup of countries",
+    "country battle",
+    "countryballs",
+    "which country wins",
+    "simulation",
+    "satisfying",
+    "shorts"
+  ],
+  "cover_ms": 9656
+}
