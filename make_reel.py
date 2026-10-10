@@ -26,10 +26,15 @@ import cup
 seed = int(time.time())
 fmt = sys.argv[1] if len(sys.argv) > 1 else None
 recap_round = None
+cup_finished = False
 if fmt is None:
-    recap_round = cup.round_to_recap(cup.load())
+    state = cup.load()
+    recap_round = cup.round_to_recap(state)
     if recap_round is not None:          # a City Cup round just finished: today's reel is its recap
         fmt = "recap"
+    elif state and state.get("champion"):
+        # the cup is over; the next season (the 32-team league) is set up by hand, so never start one here
+        fmt, cup_finished = "derby", True
     else:
         last3 = recent_formats(3)
         fmt = "derby" if len(last3) == 3 and all(f == "cup" for f in last3) else "cup"
@@ -50,6 +55,8 @@ meta_path = os.path.splitext(out)[0] + ".json"
 with open(meta_path, encoding="utf-8") as fh:
     meta = json.load(fh)
 meta.setdefault("format", fmt)
+if cup_finished:
+    meta["cup_finished"] = True
 with open(meta_path, "w", encoding="utf-8") as fh:
     json.dump(meta, fh, ensure_ascii=False, indent=2)
 print(meta_path)
