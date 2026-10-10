@@ -80,6 +80,14 @@ Rendering a video takes about 6 minutes, so always start renders in the backgrou
 2. In a new chat: "Read README.md in GitHub repo M0TRIX/barkhord-reels and take over this project", then ask it to create the daily scheduled task with the prompt above.
 3. **Turn off the old account's scheduled task**, or every video will be posted twice.
 
+## Next season (decided 2026-10-10, not built yet)
+The current City Cup (16 cities) and World Cup (32 countries) are played to the end first. Then:
+- **Cities (Instagram):** the 31 provincial capitals + 1 wildcard city chosen from viewers' comments = 32 teams, in the exact 2022 World Cup format: seeded draw with pots, 8 groups of 4, each team plays the other 3 one-on-one, top two go to the round of 16, then quarter-finals, semi-finals, third-place match, final (64 matches).
+- **Countries (YouTube):** all countries. Continental qualifiers first: each video is 4 countries from one continent on one board, the winner qualifies (about 48 videos). Then 48 teams in the exact 2026 World Cup format: 12 groups of 4, top two + 8 best third-placed teams to the round of 32, through to the final (104 matches).
+- **Tables:** win = 3 points; tiebreak = difference in board share (like goal difference). A group-table image after every match.
+- **Winners are not random:** every team has a power card (attack, speed, defence) from real data (countries: football ranking, cities: population) that changes the simulation, and every win earns an item (a power from `powers.py`) the team keeps for later matches. The table lists each team's items and the end screen names the item that won the match.
+- Copy the competition structure, not FIFA's name, logo, mascot or official slogan (trademarks); make our own.
+
 ## The owner's guide
 The owner reads a Persian guide kept as a Claude Doc: https://claude.ai/code/artifact/7262a895-1f38-4edd-aaed-6330b7fd2bc0 (it lives in the original Claude account). **Update it after every change to the project**: the section it affects, plus a dated line in its last section, "تاریخچه‌ی تغییرات" (change log, Persian solar dates).
 
