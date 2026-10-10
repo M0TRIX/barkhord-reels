@@ -125,7 +125,8 @@ def frame(t):
         r_m = int(150 * max(0.2, 1 + 2.7 * (k - 1) ** 3 + 1.7 * (k - 1) ** 2))
         mouth = 0.45 + 0.55 * abs(math.sin(t * 9))
         sp = MS.mascot(CHAMP_BODY, CHAMP_COL, r_m, "laugh", 0.9 + 0.1 * math.sin(t * 9), mouth, t, crown=True)
-        img.alpha_composite(sp, (int(W / 2 - sp.width / 2), int(1010 - sp.height / 2 - abs(math.sin(t * 7)) * 12)))
+        yc = max(1010, top + row_h * n + 0.86 * 150 + 0.72 * 150 + 30)     # below the last row, crown included
+        img.alpha_composite(sp, (int(W / 2 - sp.width / 2), int(yc - sp.height / 2 - abs(math.sin(t * 7)) * 12)))
     if t >= T_NEXT:
         k = min(1, (t - T_NEXT) / 0.35)
         yb = H - 330 + (1 - (1 - (1 - k) ** 3)) * 400

@@ -5,88 +5,174 @@
       [
         "nl",
         "pt",
-        null
+        "pt"
       ],
       [
         "mx",
         "ph",
-        null
+        "mx"
       ],
       [
         "ir",
         "fr",
-        null
+        "fr"
       ],
       [
         "gb-eng",
         "au",
-        null
+        "au"
       ],
       [
         "vn",
         "pk",
-        null
+        "vn"
       ],
       [
         "us",
         "es",
-        null
+        "es"
       ],
       [
         "ng",
         "ar",
-        null
+        "ar"
       ],
       [
         "be",
         "br",
-        null
+        "br"
       ],
       [
         "co",
         "jp",
-        null
+        "jp"
       ],
       [
         "kr",
         "sa",
-        null
+        "sa"
       ],
       [
         "tr",
         "ca",
-        null
+        "tr"
       ],
       [
         "id",
         "pl",
-        null
+        "id"
       ],
       [
         "eg",
         "gr",
-        null
+        "eg"
       ],
       [
         "de",
         "ma",
-        null
+        "de"
       ],
       [
         "bd",
         "in",
-        null
+        "bd"
       ],
       [
         "hr",
         "it",
-        null
+        "it"
       ]
     ],
-    [],
-    [],
-    [],
-    []
+    [
+      [
+        "pt",
+        "mx",
+        "mx"
+      ],
+      [
+        "fr",
+        "au",
+        "au"
+      ],
+      [
+        "vn",
+        "es",
+        "es"
+      ],
+      [
+        "ar",
+        "br",
+        "br"
+      ],
+      [
+        "jp",
+        "sa",
+        "sa"
+      ],
+      [
+        "tr",
+        "id",
+        "tr"
+      ],
+      [
+        "eg",
+        "de",
+        "eg"
+      ],
+      [
+        "bd",
+        "it",
+        "bd"
+      ]
+    ],
+    [
+      [
+        "mx",
+        "au",
+        "au"
+      ],
+      [
+        "es",
+        "br",
+        "es"
+      ],
+      [
+        "sa",
+        "tr",
+        "tr"
+      ],
+      [
+        "eg",
+        "bd",
+        "eg"
+      ]
+    ],
+    [
+      [
+        "au",
+        "es",
+        "au"
+      ],
+      [
+        "tr",
+        "eg",
+        "tr"
+      ]
+    ],
+    [
+      [
+        "au",
+        "tr",
+        "tr"
+      ]
+    ]
   ],
-  "champion": null
+  "champion": "tr",
+  "recaps_done": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ]
 }
