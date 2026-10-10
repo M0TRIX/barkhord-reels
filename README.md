@@ -79,6 +79,9 @@ Rendering a video takes about 6 minutes, so always start renders in the backgrou
 2. In a new chat: "Read README.md in GitHub repo M0TRIX/barkhord-reels and take over this project", then ask it to create the daily scheduled task with the prompt above.
 3. **Turn off the old account's scheduled task**, or every video will be posted twice.
 
+## The owner's guide
+The owner reads a Persian guide kept as a Claude Doc: https://claude.ai/code/artifact/7262a895-1f38-4edd-aaed-6330b7fd2bc0 (it lives in the original Claude account). **Update it after every change to the project**: the section it affects, plus a dated line in its last section, "تاریخچه‌ی تغییرات" (change log, Persian solar dates).
+
 ## Notes and history
 - Persian text must be rendered with Pillow's raqm layout (`direction="rtl"`); Latin-only strings (VS, K.O.!) are drawn left to right automatically.
 - Flags were rendered from the `flag-icons` npm package with headless Chromium at a fixed 640×480 size; an earlier render with viewport units produced shrunken flags.
