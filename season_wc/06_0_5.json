@@ -1,0 +1,49 @@
+{
+  "seed": 1792000603,
+  "format": "worldcup",
+  "teams": [
+    "USA",
+    "Spain"
+  ],
+  "winner": "Spain",
+  "lead_pct_at_whistle": 99,
+  "powers": [
+    [
+      "lightning",
+      "USA"
+    ],
+    [
+      "hammer",
+      "Spain"
+    ],
+    [
+      "lightning",
+      "USA"
+    ],
+    [
+      "hammer",
+      "Spain"
+    ],
+    [
+      "lightning",
+      "USA"
+    ]
+  ],
+  "new_powers": [],
+  "duration": 26.0,
+  "instagram_caption": "🌍 World Cup of Countries — Round of 32\nUSA vs Spain. Who takes it?\n\nWho are you cheering for? 👇\nSubscribe so you don't miss your country's next match!\n\n#worldcup #countries #USA #Spain #simulation #satisfying #shorts",
+  "first_comment": "✅ Spain advance to the Round of 16\n🔜 Next: Nigeria vs Argentina",
+  "youtube_title": "USA or Spain? Who wins? 🌍 Round of 32 #shorts",
+  "youtube_tags": [
+    "USA",
+    "Spain",
+    "world cup of countries",
+    "country battle",
+    "countryballs",
+    "which country wins",
+    "simulation",
+    "satisfying",
+    "shorts"
+  ],
+  "cover_ms": 8392
+}
