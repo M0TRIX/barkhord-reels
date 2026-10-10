@@ -5,7 +5,7 @@ This repo makes and schedules short vertical videos for two pages:
 | Page | Language | Series | Posted by |
 |---|---|---|---|
 | Instagram **@barkhord.tv** | Persian | **جام شهرها (City Cup)**: 16 Iranian cities, knockout, one match per reel; a Persepolis–Esteghlal derby every 4th reel | Metricool, automatically, 22:00 Tehran |
-| YouTube **Barkhord** (channel id `UCBtuxvSrawmZCWyye_sibRA`) | English | **World Cup of Countries**: 32 countries with real flags, knockout | Metricool when the free monthly quota allows, otherwise the video is sent to the owner to upload by hand |
+| YouTube **Barkhord** (channel id `UCBtuxvSrawmZCWyye_sibRA`) | English + Persian | Every day **World Cup of Countries** (32 countries with real flags, knockout); on Instagram days also the same Persian reel | The owner uploads by hand: the task sends the files with title, description and tags. Metricool's 20 free posts a month are kept for Instagram |
 
 The day after a round finishes, that day's video is a **round recap** (all results revealed one by one, then the next match).
 
@@ -33,7 +33,7 @@ All sound is synthesized in `sfx.py` (no samples, no copyright issues). Fonts: V
 | `mascot.py` | Cartoon ball characters (angry/laugh/sad, arms, crown). |
 | `sfx.py` | Sound effects: laugh, shout, crowd, bell, whistle, boom, RPG whoosh, thunder, shatter, sad trombone, drum loop. |
 | `ledger.py`, `posts_log.json` | Log of posts made through Metricool (free plan = **20 posts/month for the whole brand**). |
-| `budget.py USED` | Prints `auto` if a YouTube post fits this month after reserving one slot for every remaining Instagram day (Sat, Sun, Mon, Wed, Thu), else `manual`. |
+| `budget.py USED` | (Not used since 2026-10-10: all YouTube Shorts are uploaded by hand.) Prints `auto` if a YouTube post fits this month after reserving one slot for every remaining Instagram day, else `manual`. |
 
 Rendering needs python3 with numpy, scipy, pillow (with raqm), plus ffmpeg and npm. One video takes about 6–7 minutes on 2 CPUs; run renders in the background.
 
@@ -47,32 +47,35 @@ Metricool needs a public video URL. Videos are committed to this public repo and
 - Free plan: 20 posts per calendar month (all networks together). `getScheduledPosts` only lists posts that are not yet published, so the count comes from `posts_log.json`.
 
 ## The daily scheduled task
-Runs Sat, Sun, Mon, Wed, Thu at 20:58 Tehran (`CRON_TZ=Asia/Tehran 58 20 * * 0,1,3,4,6`), needs the Metricool connector and push access to this repo. Its prompt:
+Runs every day at 20:58 Tehran (`CRON_TZ=Asia/Tehran 58 20 * * *`), needs the Metricool connector and push access to this repo. Its prompt:
 
 ```
-You run two pages automatically: the Instagram page barkhord.tv (Persian "City Cup" reels) and the YouTube channel Barkhord (English "World Cup of Countries" Shorts). Both are in Metricool brand blogId/brandId 7295807, timezone Asia/Tehran. Talk to the user in Persian if you message them.
+You run two pages: the Instagram page barkhord.tv (Persian "City Cup" reels, posted automatically through Metricool) and the YouTube channel Barkhord (Shorts that the owner uploads by hand; Metricool's 20 free posts a month are kept for Instagram). Metricool brand blogId/brandId 7295807, timezone Asia/Tehran. Talk to the user in Persian.
+
+Today is an "Instagram day" if it is Saturday, Sunday, Monday, Wednesday or Thursday in Tehran time; Tuesday and Friday are YouTube-only days.
 
 1. Repo: you need push access to GitHub repo M0TRIX/barkhord-reels. If it is not already in this session, call add_repo (owner "M0TRIX", repo "barkhord-reels", access "push"), then `git clone --depth 1 https://github.com/M0TRIX/barkhord-reels /home/claude/barkhord-reels` (generous timeout). Set git user.name "barkhord-bot" and user.email "barkhord-bot@users.noreply.github.com". Install anything missing: `pip install --break-system-packages numpy scipy pillow` (ffmpeg and npm are needed too; the scripts download their font with npm).
 
-Rendering a video takes about 6 minutes, so always start renders in the background (e.g. `nohup python3 make_reel.py > /tmp/reel.log 2>&1 &`) and check the log every minute or so, for up to 20 minutes, until its last line is a .json path or it shows an error. Start the Instagram render and the YouTube render at the same time to save time.
+Rendering a video takes about 6 minutes, so always start renders in the background (e.g. `nohup python3 make_reel.py > /tmp/reel.log 2>&1 &`) and check the log every minute or so, for up to 20 minutes, until its last line is a .json path or it shows an error. Start the renders at the same time to save time.
 
-2. Monthly limit: the free Metricool plan allows 20 posts per calendar month for the whole brand. `python3 ledger.py count` prints how many posts were scheduled this month. If it is 20 or more, skip step 4 (do not schedule the Instagram reel) and tell the user in one Persian line.
-
-3. Render both:
-   - Instagram: `python3 make_reel.py` → reels/reel_<SEED>.mp4 + reels/reel_<SEED>.json (format, instagram_caption, first_comment, cover_ms). It plays the next City Cup match (cup.json), or a derby every fourth reel.
-   - YouTube: `python3 make_short.py` → shorts/short_<SEED>.mp4 + shorts/short_<SEED>.json (youtube_title, youtube_tags, instagram_caption which is the English YouTube description, first_comment). It plays the next World Cup of Countries match (wcup.json).
+2. Render:
+   - Every day, YouTube: `python3 make_short.py` → shorts/short_<SEED>.mp4 + shorts/short_<SEED>.json (youtube_title, youtube_tags, instagram_caption which is the English YouTube description, first_comment). It plays the next World Cup of Countries match (wcup.json) or a round recap.
+   - Instagram days only: `python3 make_reel.py` → reels/reel_<SEED>.mp4 + reels/reel_<SEED>.json (format, instagram_caption, first_comment, cover_ms, youtube_title, youtube_tags). It plays the next City Cup match (cup.json), a derby every fourth reel, or a round recap.
    Check each mp4 exists and is over 1 MB. Then delete reels/*.mp4 and shorts/*.mp4 older than 7 days (keep all .json files, cup.json, wcup.json, posts_log.json), and `git add -A && git commit -m "Daily videos <date>" && git push origin HEAD:main`. Get the commit sha with `git rev-parse --short HEAD`.
 
-4. Instagram: call Metricool createScheduledPost with blogId "7295807", date today 22:00:00+03:30, and info JSON: autoPublish true, draft false, descendants [], hasNotReadNotes false, mediaAltText [], shortener false, smartLinkData {ids: []}, providers [{network: "instagram"}], publicationDate {dateTime: "<today>T22:00:00", timezone: "Asia/Tehran"}, media ["https://cdn.jsdelivr.net/gh/M0TRIX/barkhord-reels@<sha>/reels/reel_<SEED>.mp4"], text = the reel JSON's instagram_caption exactly, firstCommentText = its first_comment exactly, videoCoverMilliseconds = its cover_ms, instagramData {type: "REEL", showReelOnFeed: true}. If rejected only because of videoCoverMilliseconds, retry once without it. If 22:00 has passed, use 15 minutes from now. Confirm the media was copied to static.metricool.com and status is PENDING. Then `python3 ledger.py add instagram "<format>"`.
+3. Instagram (Instagram days only): `python3 ledger.py count` prints how many Metricool posts were made this calendar month.
+   - Below 20: call Metricool createScheduledPost with blogId "7295807", date today 22:00:00+03:30, and info JSON: autoPublish true, draft false, descendants [], hasNotReadNotes false, mediaAltText [], shortener false, smartLinkData {ids: []}, providers [{network: "instagram"}], publicationDate {dateTime: "<today>T22:00:00", timezone: "Asia/Tehran"}, media ["https://cdn.jsdelivr.net/gh/M0TRIX/barkhord-reels@<sha>/reels/reel_<SEED>.mp4"], text = the reel JSON's instagram_caption exactly, firstCommentText = its first_comment exactly, videoCoverMilliseconds = its cover_ms, instagramData {type: "REEL", showReelOnFeed: true}. If rejected only because of videoCoverMilliseconds, retry once without it. If 22:00 has passed, use 15 minutes from now. Confirm the media was copied to static.metricool.com and status is PENDING. Then `python3 ledger.py add instagram "<format>"`.
+   - 20 or more: do not schedule it. Send the reel mp4 to the user with SendUserFile and, in the YouTube message of step 4, add the Instagram caption and first comment (each in its own code block) with one Persian line saying this month's free Metricool posts are used up, so they post the reel by hand.
 
-5. YouTube: run `python3 budget.py $(python3 ledger.py count)`.
-   - If it prints "auto": call createScheduledPost with blogId "7295807", date today 22:30:00+03:30, providers [{network: "youtube"}], media ["https://cdn.jsdelivr.net/gh/M0TRIX/barkhord-reels@<sha>/shorts/short_<SEED>.mp4"], text = the short JSON's instagram_caption (the English description), the same other info fields as in step 4 but without instagramData and firstCommentText "", and youtubeData {title: youtube_title, type: "short", privacy: "public", tags: youtube_tags, category: "ENTERTAINMENT", madeForKids: false, isAiGeneratedContent: false}. Confirm PENDING, then `python3 ledger.py add youtube "worldcup"`.
-   - If it prints "manual": send the user the short mp4 with SendUserFile, then a SendUserMessage in Persian saying it is today's YouTube Short to upload by hand (the free plan's monthly posts are reserved for Instagram), followed by the title, the description and the tags exactly as in the JSON (title, description and tags in English, each in its own code block so they are easy to copy).
+4. YouTube (every day): the owner uploads by hand. Send the files with SendUserFile and one SendUserMessage in Persian:
+   - Short 1, the World Cup of Countries (shorts/short_<SEED>.mp4): title = youtube_title, description = instagram_caption, tags = youtube_tags joined with ", ", and first_comment as the comment to pin.
+   - On Instagram days, Short 2, the same Persian reel (reels/reel_<SEED>.mp4): title = its youtube_title, description = its instagram_caption, tags = its youtube_tags joined with ", ", and its first_comment to pin.
+   Put every title, description, tags list and comment in its own code block so each can be copied with one tap. Add one line on timing: the Persian Short goes up right away (Iranian evening, about 21:30–22:30 Tehran); the World Cup Short is scheduled in YouTube Studio for tomorrow 16:00 Tehran (midday in Europe, evening in South and Southeast Asia, and the hour Metricool's data shows as YouTube's best every day).
    Finally commit and push posts_log.json (`git add -A && git commit -m "Log posts" && git push origin HEAD:main`).
 
-6. If today's Instagram format was "cup": run `python3 cup.py bracket /tmp/bracket.png` and send that image to the user with one Persian line saying it is the updated City Cup table, for a story and the "جام" highlight if they like.
+5. If today's Instagram format was "cup": run `python3 cup.py bracket /tmp/bracket.png` and send that image to the user with one Persian line saying it is the updated City Cup table, for a story and the "جام" highlight if they like.
 
-7. If any step fails and you cannot fix it: send the affected mp4 to the user with its caption/title so they can post it by hand, and say in one Persian line what failed. If everything worked, finish with one short Persian line naming today's Instagram match and YouTube match and how each was posted.
+6. If any step fails and you cannot fix it: send the affected mp4 to the user with its caption/title so they can post it by hand, and say in one Persian line what failed. If everything worked, finish with one short Persian line naming today's matches and how each goes out.
 ```
 
 ## Moving to another Claude account
