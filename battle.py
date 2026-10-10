@@ -893,7 +893,9 @@ def draw_intro(v):
     lay, d = layer()
     d.rounded_rectangle([AX - 8, AY - 8, AX + AS + 8, AY + AS + 8], 22, fill=(24, 20, 44, 255))
     img.alpha_composite(lay)
-    for t, (t_in, x_from, x_to) in enumerate(((0.0, -260, 300), (1.15, W + 260, 780))):
+    # the first team stands where reading starts: left in English, right in Persian (like the bar and the title)
+    sides = ((0.0, -260, 300), (1.15, W + 260, 780)) if EN else ((0.0, W + 260, 780), (1.15, -260, 300))
+    for t, (t_in, x_from, x_to) in enumerate(sides):
         k = v - t_in
         if k < 0:
             continue
