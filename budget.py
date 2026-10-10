@@ -13,7 +13,7 @@ IG_WEEKDAYS = {5, 6, 0, 2, 3}          # Python weekday numbers: Sat, Sun, Mon, 
 
 used = int(sys.argv[1])
 today = (datetime.date.fromisoformat(sys.argv[2]) if len(sys.argv) > 2
-         else (datetime.datetime.utcnow() + datetime.timedelta(hours=3, minutes=30)).date())
+         else (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=3, minutes=30)).date())
 last = calendar.monthrange(today.year, today.month)[1]
 ig_left = sum(1 for d in range(today.day + 1, last + 1)
               if datetime.date(today.year, today.month, d).weekday() in IG_WEEKDAYS)

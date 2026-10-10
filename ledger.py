@@ -9,7 +9,7 @@ PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "posts_log.json"
 
 
 def today():
-    return (datetime.datetime.utcnow() + datetime.timedelta(hours=3, minutes=30)).date()
+    return (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=3, minutes=30)).date()
 
 
 def load():
