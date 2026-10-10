@@ -13,6 +13,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 OUT = sys.argv[1]
 SEED = int(sys.argv[2])
 FORMAT = sys.argv[3]
+EN = FORMAT == "worldcup"          # the YouTube series is in English, left-to-right
 rng = random.Random(SEED)
 WORK = tempfile.mkdtemp(prefix="battle_")
 
@@ -26,19 +27,24 @@ if not font_path("Black"):
     subprocess.run(["npm", "pack", "vazirmatn", "--silent"], cwd=FONT_DIR, check=True)
     subprocess.run(["tar", "xzf", glob.glob(f"{FONT_DIR}/vazirmatn-*.tgz")[0]], cwd=FONT_DIR, check=True)
 FONT, FONT_MED = font_path("Black"), font_path("SemiBold")
+if EN:
+    FONT = glob.glob(f"{FONT_DIR}/package/fonts/ttf/Vazirmatn-Black.ttf")[0]
+    FONT_MED = glob.glob(f"{FONT_DIR}/package/fonts/ttf/Vazirmatn-SemiBold.ttf")[0]
 RQ = ImageFont.Layout.RAQM
 FA = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
-def fa(n): return str(n).translate(FA)
+def fa(n): return str(n) if EN else str(n).translate(FA)
 _fonts = {}
 def F(size, bold=True):
     key = (size, bold)
     if key not in _fonts:
         _fonts[key] = ImageFont.truetype(FONT if bold else FONT_MED, size, layout_engine=RQ)
     return _fonts[key]
+def possessive(n): return n + ("'" if n.endswith("s") else "'s")
 def hexc(h): return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
 
 # ---------------- teams per format ----------------
 CITY_COLORS = ["#E63946", "#2A9DF4", "#F4B400", "#2DC653", "#A855F7", "#FF7A1A"]
+TEAM_FLAGS = None
 CITIES = ["تهران", "مشهد", "اصفهان", "شیراز", "تبریز", "اهواز", "کرج", "رشت",
           "کرمانشاه", "یزد", "قم", "کرمان", "همدان", "ارومیه", "زاهدان", "بندرعباس"]
 if FORMAT == "derby":
@@ -61,6 +67,16 @@ elif FORMAT == "cup":
     TEAMS = [(ca_, hexc(col_a)), (cb_, hexc(col_b))]
     HOOK, SUB = f"{ca_} یا {cb_}؟", "جام شهرها · " + cup.match_label(CUP_R, CUP_M)
     CTA_END = ""
+elif FORMAT == "worldcup":
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import worldcup as wc
+    WC_STATE, WC_R, WC_M, code_a, code_b = wc.next_match(SEED)
+    CODES = [code_a, code_b]
+    col_a, col_b = wc.colors_for(WC_R, WC_M, WC_STATE["season"])
+    TEAMS = [(wc.name(code_a), hexc(col_a)), (wc.name(code_b), hexc(col_b))]
+    TEAM_FLAGS = [Image.open(wc.flag_path(c)).convert("RGBA") for c in CODES]
+    HOOK, SUB = f"{TEAMS[0][0]} vs {TEAMS[1][0]}", "World Cup of Countries · " + wc.match_label(WC_R, WC_M)
+    CTA_END = ""
 else:
     pool = [("قرمز", "#E63946"), ("آبی", "#2A9DF4"), ("زرد", "#F4B400"), ("سبز", "#2DC653"), ("بنفش", "#A855F7")]
     n = rng.choice([2, 3, 4])
@@ -81,9 +97,9 @@ SIM_END = BATTLE + FINISH
 DUR = SIM_END + OUTRO
 N = int(DUR * FPS)
 AX, AY, AS = 60, 540, 960           # arena square
-GN = 25 if FORMAT == "cup" else 24  # grid cells per side (odd count = no ties)
+GN = 25 if FORMAT in ("cup", "worldcup") else 24  # grid cells per side (odd count = no ties)
 CS = AS / GN
-BR = 17                             # ball radius
+BR = 24 if EN else 17               # ball radius (bigger for flag balls)
 SPEED = rng.uniform(700, 820)
 NSUB = 10
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -96,6 +112,8 @@ if NT == 2:
         for j in range(GN):
             # team 0 on the right/top, like the bar; works for odd GN (sides differ by one cell)
             grid[j, i] = (0 if i * GN + j >= GN * GN // 2 else 1) if vertical else (0 if j * GN + i < (GN * GN + 1) // 2 else 1)
+    if EN and vertical:     # left-to-right: first team on the left, like the bar
+        grid = (1 - grid).astype(np.int8)
 elif NT == 3:
     for i in range(GN):
         grid[:, i] = 2 - min(2, i * 3 // GN)
@@ -120,6 +138,8 @@ for t in range(NT):
 
 # ---- special powers: the team in last place gets one, which keeps the lead changing ----
 POWER_NAME = {"giant": "توپ غول‌پیکر", "rpg": "آرپی‌جی", "lightning": "صاعقه", "clone": "تکثیر"}
+if EN:
+    POWER_NAME = {"giant": "GIANT BALL", "rpg": "RPG", "lightning": "LIGHTNING", "clone": "CLONES"}
 FRENZY = 5.0                         # the last seconds: faster balls, more powers
 POWER_TIMES = [rng.uniform(2.0, 2.6), rng.uniform(5.8, 6.6), rng.uniform(9.2, 9.8),
                BATTLE - rng.uniform(4.3, 4.0), BATTLE - rng.uniform(2.3, 2.0)]
@@ -264,8 +284,17 @@ for fi in range(int(SIM_END * FPS) + 1):
             step(dt, t_frame + s * dt)
 
 WIN_PCT = int(round(LEAD_SHARE[WIN] * 100))
-CARD_SUB = "کل زمین رو گرفت!"
-FOLLOW_LINE = "فالو کن که بعدی رو از دست ندی"
+CARD_SUB = "Took the whole map!" if EN else "کل زمین رو گرفت!"
+FOLLOW_LINE = "Subscribe to see who wins it all" if EN else "فالو کن که بعدی رو از دست ندی"
+if FORMAT == "worldcup":
+    WC_INFO = wc.record(WC_STATE, WC_R, WC_M, CODES[WIN])
+    if WC_INFO["champion"]:
+        CARD_SUB = "WORLD CHAMPION!"
+        CTA_END = "A new season starts next!"
+    else:
+        CARD_SUB = f"Advances to the {WC_INFO['advanced_to']}"
+        na, nb = WC_INFO["next"]
+        CTA_END = f"Next: {wc.name(na)} vs {wc.name(nb)}"
 if FORMAT == "cup":
     CUP_INFO = cup.record(CUP_STATE, CUP_R, CUP_M, TEAMS[WIN][0])
     if CUP_INFO["champion"]:
@@ -364,7 +393,7 @@ def draw_bar(img, share, hl=-1):
     d.rounded_rectangle([bx, by, bx + bw, by + bh], 23, fill=(40, 40, 60, 255))
     x = bx
     segs = []
-    for t in list(range(NT))[::-1]:    # right-to-left so team 0 sits on the right (RTL reading)
+    for t in (list(range(NT)) if EN else list(range(NT))[::-1]):    # team 0 sits where reading starts
         w = bw * share[t]
         segs.append((t, x, x + w))
         x += w
@@ -377,11 +406,33 @@ def draw_bar(img, share, hl=-1):
     img.paste(bar, (bx, by), mask)
     slot = bw / NT
     for t in range(NT):
-        cx = bx + bw - slot * (t + 0.5)
+        cx = bx + slot * (t + 0.5) if EN else bx + bw - slot * (t + 0.5)
         pct = int(round(share[t] * 100))
         size = (44 if NT <= 2 else 36) + (6 if t == hl else 0)
-        d.text((cx, by + bh + 46), f"{TEAMS[t][0]} {fa(pct)}٪", font=F(size), fill=shade(TEAMS[t][1], 1.35) + (255,),
-               anchor="mm", direction="rtl", language="fa")
+        label = f"{TEAMS[t][0]} {pct}%" if EN else f"{TEAMS[t][0]} {fa(pct)}٪"
+        if TEAM_FLAGS:
+            tw = d.textlength(label, font=F(size))
+            fl = TEAM_FLAGS[t].resize((48, 36), Image.LANCZOS)
+            img.alpha_composite(fl, (int(cx - (tw + 58) / 2), int(by + bh + 46 - 18)))
+            cx += 29
+        d.text((cx, by + bh + 46), label, font=F(size), fill=shade(TEAMS[t][1], 1.35) + (255,),
+               anchor="mm", direction="ltr" if EN else "rtl", language="en" if EN else "fa")
+
+_sprites = {}
+def flag_disc(t, diam):
+    """Team flag cropped to a circle, diam px wide (cached)."""
+    diam = max(8, int(diam) // 4 * 4)
+    key = (t, diam)
+    if key not in _sprites:
+        fl = TEAM_FLAGS[t]
+        side = min(fl.size)
+        sq = fl.crop(((fl.width - side) // 2, (fl.height - side) // 2, (fl.width + side) // 2, (fl.height + side) // 2))
+        sq = sq.resize((diam, diam), Image.LANCZOS)
+        mask = Image.new("L", (diam, diam), 0)
+        ImageDraw.Draw(mask).ellipse([0, 0, diam - 1, diam - 1], fill=255)
+        sq.putalpha(mask)
+        _sprites[key] = sq
+    return _sprites[key]
 
 def draw_balls(img, pos, tnow):
     lay = Image.new("RGBA", (W * 2, H * 2), (0, 0, 0, 0))
@@ -389,6 +440,15 @@ def draw_balls(img, pos, tnow):
     for (x, y, t, giant, clone) in pos:
         cx, cy = (AX + x) * 2, (AY + y) * 2
         c = shade(TEAMS[t][1], 1.15)
+        if TEAM_FLAGS:           # country balls: the flag inside a ring of the team color
+            r = (GIANT_R * 2 * (1 + 0.06 * math.sin(tnow * 30))) if giant else BR * 2 * (1.25 if clone else 1.0)
+            ring = 18 if giant else 8
+            d.ellipse([cx - r - ring, cy - r - ring, cx + r + ring, cy + r + ring],
+                      fill=(shade(TEAMS[t][1], 1.5) if giant else (255, 255, 255)) + (255,))
+            d.ellipse([cx - r - ring / 2, cy - r - ring / 2, cx + r + ring / 2, cy + r + ring / 2], fill=c + (255,))
+            sp = flag_disc(t, 2 * r)
+            lay.alpha_composite(sp, (int(cx - sp.width / 2), int(cy - sp.height / 2)))
+            continue
         if giant:
             r = GIANT_R * 2 * (1 + 0.06 * math.sin(tnow * 30))
             d.ellipse([cx - r - 16, cy - r - 16, cx + r + 16, cy + r + 16], fill=shade(TEAMS[t][1], 1.5) + (255,))
@@ -487,11 +547,26 @@ def draw_effects(img, tnow):
     lay.putalpha(Image.composite(lay.getchannel("A"), ZERO_L, EFFECT_MASK))
     img.alpha_composite(lay)
 
+def header(img):
+    if not TEAM_FLAGS:
+        header(img)
+        return
+    size = text(img, (W / 2, 200), HOOK, 74, max_w=720)
+    tw = ImageDraw.Draw(img).textlength(HOOK, font=F(size))
+    for t, side in ((0, -1), (1, 1)):
+        fl = TEAM_FLAGS[t].resize((88, 66), Image.LANCZOS)
+        x = W / 2 + side * (tw / 2 + 30) - (88 if side < 0 else 0)
+        frame = Image.new("RGBA", (96, 74), (255, 255, 255, 255))
+        img.alpha_composite(frame, (int(x) - 4, 200 - 37))
+        img.alpha_composite(fl, (int(x), 200 - 33))
+
 def text(img, xy, s, size, col=(255, 255, 255, 255), bold=True, max_w=960):
     d = ImageDraw.Draw(img)
-    while size > 24 and d.textlength(s, font=F(size, bold), direction="rtl", language="fa") > max_w:
+    dr, lg = ("ltr", "en") if EN else ("rtl", "fa")
+    while size > 24 and d.textlength(s, font=F(size, bold), direction=dr, language=lg) > max_w:
         size -= 2
-    d.text(xy, s, font=F(size, bold), fill=col, anchor="mm", direction="rtl", language="fa")
+    d.text(xy, s, font=F(size, bold), fill=col, anchor="mm", direction=dr, language=lg)
+    return size
 
 def banner(img, title, sub, col, age, life=1.5, cy=AY + 120):
     a = min(1, age / 0.12, (life - age) / 0.3)
@@ -536,7 +611,7 @@ PREVIEW_AT = sorted({int(1.0 * FPS)} | {int((p["t0"] + 0.35) * FPS) for p in pow
 for fi in range(N):
     tnow = fi / FPS
     img = BG.copy()
-    text(img, (W / 2, 200), HOOK, 74)
+    header(img)
     text(img, (W / 2, 290), SUB, 44, (255, 255, 255, 170), bold=False)
     if tnow < SIM_END:
         k = min(fi, sim_frames - 1)
@@ -551,7 +626,7 @@ for fi in range(N):
         draw_bar(img, share, hl=int(np.argmax(share)))
         for p in powers:
             if p["t0"] <= tnow < p["t0"] + 1.5:
-                banner(img, POWER_NAME[p["kind"]] + "!", f"قدرت ویژه‌ی {TEAMS[p['team']][0]}", TEAMS[p["team"]][1], tnow - p["t0"])
+                banner(img, POWER_NAME[p["kind"]] + "!", (possessive(TEAMS[p['team']][0]) + " special power" if EN else f"قدرت ویژه‌ی {TEAMS[p['team']][0]}"), TEAMS[p["team"]][1], tnow - p["t0"])
         if BATTLE - FRENZY <= tnow < BATTLE:
             pulse = 0.5 + 0.5 * math.sin((tnow - (BATTLE - FRENZY)) * 2 * math.pi * 2)
             lay, d = layer()
@@ -564,13 +639,16 @@ for fi in range(N):
             urgent = BATTLE - tnow <= FRENZY
             tc = (255, 90, 90, 255) if urgent else (255, 255, 255, 200)
             tsize = 64 + (int(14 * (1 - (BATTLE - tnow) % 1)) if urgent else 0)
-            label = f"{fa(left)} ثانیه‌ی آخر!" if urgent else f"۰:{fa(left).rjust(2, '۰')}"
+            if EN:
+                label = (f"{left} SECOND{'S' if left != 1 else ''} LEFT!") if urgent else f"0:{left:02d}"
+            else:
+                label = f"{fa(left)} ثانیه‌ی آخر!" if urgent else f"۰:{fa(left).rjust(2, '۰')}"
             text(img, (W / 2, AY + AS + 90), label, tsize, tc)
         else:
             if tnow < BATTLE + 0.15:
                 img.alpha_composite(Image.new("RGBA", (W, H), (255, 255, 255, int(200 * (1 - (tnow - BATTLE) / 0.15)))))
             pop = 1 + 0.3 * max(0, 1 - (tnow - BATTLE) / 0.2)
-            text(img, (W / 2, AY + AS + 95), "ضربه‌ی آخر!", int(72 * pop), shade(TEAMS[WIN][1], 1.5) + (255,))
+            text(img, (W / 2, AY + AS + 95), "FINAL BLOW!" if EN else "ضربه‌ی آخر!", int(72 * pop), shade(TEAMS[WIN][1], 1.5) + (255,))
     else:
         bt = tnow - SIM_END
         if final_frame is None:
@@ -578,7 +656,7 @@ for fi in range(N):
             draw_grid(final_frame, frames_grid[-1])
             draw_bar(final_frame, frames_share[-1], hl=WIN)
         img = final_frame.copy()
-        text(img, (W / 2, 200), HOOK, 74)
+        header(img)
         text(img, (W / 2, 290), SUB, 44, (255, 255, 255, 170), bold=False)
         img.alpha_composite(Image.new("RGBA", (W, H), (0, 0, 0, int(min(1, bt / 0.3) * 150))))
         lay, d = layer()
@@ -588,21 +666,29 @@ for fi in range(N):
             x, y = pos[q]
             d.ellipse([x - CSZ[q], y - CSZ[q], x + CSZ[q], y + CSZ[q]], fill=CCOL[q] + (a,))
         sc = min(1, bt / 0.25)
-        card_h = 360
+        card_h = 400 if TEAM_FLAGS else 360
         cy = AY + AS / 2
         d.rounded_rectangle([110, cy - card_h / 2, 970, cy + card_h / 2], 40,
                             fill=shade(TEAMS[WIN][1], 0.75) + (int(235 * sc),),
                             outline=shade(TEAMS[WIN][1], 1.4) + (int(255 * sc),), width=6)
         img.alpha_composite(lay)
         if sc >= 1:
-            text(img, (W / 2, cy - 100), "برنده", 52, (255, 255, 255, 200), bold=False)
-            text(img, (W / 2, cy), TEAMS[WIN][0], 120, max_w=800)
-            text(img, (W / 2, cy + 110), CARD_SUB, 50, (255, 255, 255, 220), bold=False, max_w=800)
+            if TEAM_FLAGS:
+                text(img, (W / 2, cy - 140), "WINNER", 46, (255, 255, 255, 200), bold=False)
+                fl = TEAM_FLAGS[WIN].resize((140, 105), Image.LANCZOS)
+                img.alpha_composite(Image.new("RGBA", (150, 115), (255, 255, 255, 255)), (int(W / 2 - 75), int(cy - 112)))
+                img.alpha_composite(fl, (int(W / 2 - 70), int(cy - 107)))
+                text(img, (W / 2, cy + 50), TEAMS[WIN][0], 96, max_w=800)
+                text(img, (W / 2, cy + 130), CARD_SUB, 44, (255, 255, 255, 220), bold=False, max_w=800)
+            else:
+                text(img, (W / 2, cy - 100), "برنده", 52, (255, 255, 255, 200), bold=False)
+                text(img, (W / 2, cy), TEAMS[WIN][0], 120, max_w=800)
+                text(img, (W / 2, cy + 110), CARD_SUB, 50, (255, 255, 255, 220), bold=False, max_w=800)
         if bt > 0.7:
             text(img, (W / 2, AY + AS + 90), CTA_END, 58, shade(TEAMS[WIN][1], 1.45) + (255,))
         if bt > 1.2:
             text(img, (W / 2, AY + AS + 170), FOLLOW_LINE, 42, (255, 255, 255, 200), bold=False)
-    ImageDraw.Draw(img).text((W / 2, H - 110), "@barkhord.tv", font=F(36, False), fill=(255, 255, 255, 110), anchor="mm")
+    ImageDraw.Draw(img).text((W / 2, H - 110), "BARKHORD" if EN else "@barkhord.tv", font=F(36, False), fill=(255, 255, 255, 110), anchor="mm")
     ff.stdin.write(img.convert("RGB").tobytes())
     if os.environ.get("PREVIEW") and fi in PREVIEW_AT:
         img.convert("RGB").save(f"{OUT}.preview_{fi:04d}.png")
@@ -616,9 +702,16 @@ names = [t[0] for t in TEAMS]
 if FORMAT == "cup":
     caption, first = captions.cup(rng, names, TEAMS[WIN][0], cup.ROUND_NAMES[CUP_R], CUP_INFO)
     cup.save(CUP_STATE)
+elif FORMAT == "worldcup":
+    nxt = [wc.name(c) for c in WC_INFO["next"]] if WC_INFO["next"] else None
+    caption, first = captions.worldcup(rng, names, TEAMS[WIN][0], wc.ROUND_NAMES[WC_R], WC_INFO, nxt)
+    wc.save(WC_STATE)
 else:
     caption, first = getattr(captions, FORMAT)(rng, names, TEAMS[WIN][0])
-yt_title, yt_tags = captions.youtube(FORMAT, names, cup.ROUND_NAMES[CUP_R] if FORMAT == "cup" else None)
+if FORMAT == "worldcup":
+    yt_title, yt_tags = captions.youtube_worldcup(rng, names, wc.ROUND_NAMES[WC_R])
+else:
+    yt_title, yt_tags = captions.youtube(FORMAT, names, cup.ROUND_NAMES[CUP_R] if FORMAT == "cup" else None)
 meta = {"seed": SEED, "format": FORMAT, "teams": names, "winner": TEAMS[WIN][0], "lead_pct_at_whistle": WIN_PCT,
         "powers": [[p["kind"], TEAMS[p["team"]][0]] for p in powers], "duration": round(DUR, 2),
         "instagram_caption": caption, "first_comment": first,

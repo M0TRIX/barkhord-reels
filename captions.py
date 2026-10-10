@@ -136,3 +136,41 @@ def youtube(fmt, names, round_name=None):
         title = f"{or_fa(names)}؟ کدوم رنگ می‌بره؟ 🎨 #shorts"
         tags = ["رنگ"] + names
     return title[:100], tags + BASE_TAGS
+
+
+# ---------------- English, for the YouTube World Cup of Countries ----------------
+def _en_tag(name):
+    return "#" + name.replace(" ", "")
+
+
+def worldcup(rng, names, winner, round_name, info, next_names):
+    """(description, pinned-comment idea) for a World Cup of Countries Short."""
+    a, b = names
+    hook = rng.choice([
+        f"🌍 World Cup of Countries — {round_name}\n{a} vs {b}. Who takes it?",
+        f"{a} or {b}? 🔥 World Cup of Countries, {round_name}",
+        f"32 countries, one champion 🏆 Today: {a} vs {b}",
+    ])
+    ask = rng.choice([
+        "Which country should win it all? Comment below 👇",
+        "Is your country still in the cup? Tell me in the comments 👇",
+        "Who are you cheering for? 👇",
+    ])
+    description = (f"{hook}\n\n{ask}\nSubscribe so you don't miss your country's next match!\n\n"
+                   f"#worldcup #countries {_en_tag(a)} {_en_tag(b)} #simulation #satisfying #shorts")
+    if info["champion"]:
+        comment = f"🏆 {winner} are the champions! Which countries should be in next season?"
+    else:
+        comment = f"✅ {winner} advance to the {info['advanced_to']}\n🔜 Next: {next_names[0]} vs {next_names[1]}"
+    return description, comment
+
+
+def youtube_worldcup(rng, names, round_name):
+    a, b = names
+    title = rng.choice([
+        f"{a} vs {b} 🔥 World Cup of Countries | {round_name} #shorts",
+        f"{a} or {b}? Who wins? 🌍 {round_name} #shorts",
+    ])
+    tags = [a, b, "world cup of countries", "country battle", "countryballs", "which country wins",
+            "simulation", "satisfying", "shorts"]
+    return title[:100], tags
