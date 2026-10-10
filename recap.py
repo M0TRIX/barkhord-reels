@@ -19,8 +19,8 @@ else:
     import cup as S
 state = S.load()
 matches = state["rounds"][RD]
-CHAMP = (not EN) and RD == 3 and state.get("champion")
-ROUND_SHORT = ["یک‌هشتم", "یک‌چهارم", "نیمه‌نهایی", "فینال"]
+CHAMP = RD == len(S.ROUND_NAMES) - 1 and state.get("champion")
+ROUND_SHORT = ["R32", "R16", "QF", "SF", "Final"] if EN else ["یک‌هشتم", "یک‌چهارم", "نیمه‌نهایی", "فینال"]
 row_labels = None
 if CHAMP:                    # the champion's video: its road to the cup, one row per round
     champ = state["champion"]
@@ -30,10 +30,12 @@ if CHAMP:                    # the champion's video: its road to the cup, one ro
 nxt = S.pending(state)
 if CHAMP:
     import mascot as MS
-    fa_, fb_, _ = state["rounds"][3][0]
-    ca_, cb_ = S.colors_for(3, 0, state["season"])
+    FR = len(S.ROUND_NAMES) - 1
+    fa_, fb_, _ = state["rounds"][FR][0]
+    ca_, cb_ = S.colors_for(FR, 0, state["season"])
     hx = ca_ if champ == fa_ else cb_
     CHAMP_COL = tuple(int(hx[i:i + 2], 16) for i in (1, 3, 5))
+    CHAMP_BODY = Image.open(S.flag_path(champ)).convert("RGBA") if EN else None
 next_pair = state["rounds"][nxt[0]][nxt[1]][:2] if nxt else None
 name = (lambda c: S.name(c)) if EN else (lambda c: c)
 
@@ -59,6 +61,8 @@ T_NEXT = REVEAL[-1] + 0.8
 DUR = T_NEXT + (4.5 if CHAMP else 3.0)
 GOLD, DIM, WHITE = (255, 210, 63), (110, 110, 140), (255, 255, 255)
 
+def possessive(n): return n + ("'" if n.endswith("s") else "'s")
+
 def text(d, xy, s, size, col, bold=True, anchor="mm"):
     latin = not any("؀" <= ch <= "ۿ" for ch in s)
     d.text(xy, s, font=F(size, bold), fill=col, anchor=anchor,
@@ -80,7 +84,7 @@ for y in range(H):
 title = "World Cup of Countries" if EN else "جام شهرها"
 sub = f"{S.ROUND_NAMES[RD]} results" if EN else f"نتایج {S.ROUND_NAMES[RD]}"
 if CHAMP:
-    sub = f"مسیر قهرمانی {champ}"
+    sub = f"{possessive(name(champ))} road to the cup" if EN else f"مسیر قهرمانی {champ}"
 top, bottom = 330, 1500
 row_h = min(120, (bottom - top) / n)
 fs = int(min(46, row_h * 0.5))
@@ -120,14 +124,14 @@ def frame(t):
         k = min(1.0, (t - T_NEXT + 0.4) / 0.4)
         r_m = int(150 * max(0.2, 1 + 2.7 * (k - 1) ** 3 + 1.7 * (k - 1) ** 2))
         mouth = 0.45 + 0.55 * abs(math.sin(t * 9))
-        sp = MS.mascot(None, CHAMP_COL, r_m, "laugh", 0.9 + 0.1 * math.sin(t * 9), mouth, t, crown=True)
+        sp = MS.mascot(CHAMP_BODY, CHAMP_COL, r_m, "laugh", 0.9 + 0.1 * math.sin(t * 9), mouth, t, crown=True)
         img.alpha_composite(sp, (int(W / 2 - sp.width / 2), int(1010 - sp.height / 2 - abs(math.sin(t * 7)) * 12)))
     if t >= T_NEXT:
         k = min(1, (t - T_NEXT) / 0.35)
         yb = H - 330 + (1 - (1 - (1 - k) ** 3)) * 400
         d.rounded_rectangle([70, yb - 90, W - 70, yb + 90], 34, fill=(255, 210, 63, 255))
         if CHAMP:
-            line1, pair = f"🏆 قهرمان فصل {S.fa(state['season'])}".replace("🏆 ", ""), champ
+            line1, pair = ("WORLD CHAMPION", name(champ)) if EN else (f"قهرمان فصل {S.fa(state['season'])}", champ)
         elif next_pair:
             line1 = "NEXT MATCH" if EN else "بازی بعد"
             pair = f"{name(next_pair[0])} vs {name(next_pair[1])}" if EN else f"{name(next_pair[0])} و {name(next_pair[1])}"
@@ -135,7 +139,7 @@ def frame(t):
             line1, pair = ("CHAMPION", name(state.get("champion") or "")) if EN else ("قهرمان", state.get("champion") or "")
         text(d, (W / 2, yb - 38), line1, 40, (60, 30, 10), bold=False)
         text(d, (W / 2, yb + 22), pair, 60, (40, 20, 10))
-        text(d, (W / 2, yb + 150), "Subscribe so you don't miss it" if EN else ("فصل بعد بزرگ‌تره؛ شهرت رو کامنت کن" if CHAMP else "فالو کن که از دستت نره"), 40, WHITE, bold=False)
+        text(d, (W / 2, yb + 150), ("Subscribe for next season: every country!" if CHAMP else "Subscribe so you don't miss it") if EN else ("فصل بعد بزرگ‌تره؛ شهرت رو کامنت کن" if CHAMP else "فالو کن که از دستت نره"), 40, WHITE, bold=False)
         if CHAMP:                        # confetti over the champion card
             rr = random.Random(int(t * FPS))
             cr = random.Random(7)
@@ -184,7 +188,15 @@ shutil.rmtree(work, ignore_errors=True)
 
 # captions
 winners = [name(w) for _, _, w in matches]
-if EN:
+if EN and CHAMP:
+    road_txt = ", ".join(name(opp) for _, opp in road)
+    cn = name(champ)
+    caption = (f"🏆 {cn} win the World Cup of Countries!\nRoad to the cup: {road_txt}\n\n"
+               f"Next season every country is in. Which one wins it? 👇\n\n#worldcup #countries #{cn.replace(' ', '')} #shorts")
+    first = "Which country takes it next season? 👇"
+    yt_title = f"{cn} win the World Cup of Countries! 🏆 #shorts"[:100]
+    yt_tags = ["world cup of countries", "champion", cn, "country battle", "countryballs", "simulation", "shorts"]
+elif EN:
     rn = S.ROUND_NAMES[RD]
     np_txt = f"Next: {name(next_pair[0])} vs {name(next_pair[1])}" if next_pair else ""
     caption = (f"🌍 World Cup of Countries — {rn} results!\nThrough: {', '.join(winners)}\n{np_txt}\n\n"

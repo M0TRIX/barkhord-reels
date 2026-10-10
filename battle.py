@@ -99,11 +99,12 @@ def shade(c, k):  # k<1 darker, k>1 lighter
 
 # ---------------- simulation ----------------
 W, H, FPS = 1080, 1920, 30
-BATTLE, FINISH, OUTRO = 15.0, 2.3, 4.6      # fight, knockout sweep + K.O., winner podium
-SIM_END = BATTLE + FINISH
+# The fight has no fixed end: after OT_START comes the final round, where each side's number of balls
+# follows its share of the board (the leader snowballs) until one side is out. BATTLE is that moment,
+# SIM_END = BATTLE + the last sweep + the K.O. hold. Both are known only after the simulation.
+OT_START, OT_CAP, OUT_SHARE = 12.0, 12.0, 0.015
+KO_HOLD, OUTRO = 0.9, 4.6
 INTRO = 2.8 if NT == 2 else 0.0              # wrestling-style entrance before the fight
-DUR = INTRO + SIM_END + OUTRO
-N = int(DUR * FPS)
 AX, AY, AS = 60, 540, 960           # arena square
 GN = 25 if FORMAT in ("cup", "worldcup", "request") else 24  # grid cells per side (odd count = no ties)
 CS = AS / GN
@@ -150,9 +151,8 @@ POWER_NAME = {"giant": "توپ غول‌پیکر", "rpg": "آرپی‌جی", "li
 if EN:
     POWER_NAME = {"giant": "GIANT BALL", "rpg": "RPG", "lightning": "THUNDERSTORM", "clone": "CLONES",
                   "hammer": "GIANT HAMMER", "shield": "SHIELD"}
-FRENZY = 5.0                         # the last seconds: faster balls, more powers
-POWER_TIMES = [rng.uniform(2.0, 2.6), rng.uniform(5.8, 6.6), rng.uniform(8.4, 9.0),
-               BATTLE - rng.uniform(4.3, 4.0), BATTLE - rng.uniform(2.3, 2.0)]
+POWER_TIMES = [rng.uniform(2.0, 2.6), rng.uniform(5.0, 5.6), rng.uniform(7.6, 8.2),
+               rng.uniform(10.0, 10.6), OT_START + rng.uniform(1.2, 1.8)]   # the last one: a comeback chance in the final round
 import powers as PW
 TODAY = datetime.date.fromisoformat(os.environ["TODAY"]) if os.environ.get("TODAY") else PW.today_tehran()
 POWER_KINDS, SHIELD_ON = PW.pick(rng, TODAY)        # a few powers per video, new ones first (powers.py)
@@ -253,11 +253,13 @@ def trigger_power(kind, t0, team, blocked=False):
             spawn(team, src[0], src[1], expire=t0 + 3.6)
             effects.append({"type": "poof", "t0": t0, "x": src[0], "y": src[1], "team": team})
 
+TEAM_R = [BR] * NT          # final round: the leader's balls grow (see rebalance)
+
 def step(dt, t_now):
     for b in balls:
         x, y, vx, vy, ti, until, exp = b
-        if t_now < until:
-            r = GIANT_R
+        if t_now < until or TEAM_R[ti] > BR * 1.15:
+            r = GIANT_R if t_now < until else TEAM_R[ti]
             capture_disc(x, y, r + CS * 0.35, ti, t_now)
         else:
             r = BR
@@ -284,12 +286,33 @@ def step(dt, t_now):
 
 frames_grid, frames_balls, frames_share = [], [], []
 dt = 1.0 / (FPS * NSUB)
-WIN, LEAD_SHARE, SWEEP = None, None, None
+WIN, LEAD_SHARE, SWEEP, BATTLE, SIM_END = None, None, None, None, None
 fired = set()
 frenzy_on = False
-for fi in range(int(SIM_END * FPS) + 1):
+BASE_SPEED = SPEED
+
+def rebalance(t_now):
+    """Final round: each side gets balls in proportion to its share of the board (min 1 while it has land)."""
+    share = np.bincount(grid.ravel(), minlength=NT) / grid.size
+    lead = int(np.argmax(share))
+    for t in range(NT):            # the side in front powers up the longer the final round goes
+        TEAM_R[t] = min(BR + (t_now - OT_START) * CS * 0.5, GIANT_R * 0.85) if t == lead else BR
+    for t in range(NT):
+        target = 0 if share[t] == 0 else max(1, int(round(10 * share[t])))
+        mine = [b for b in balls if b[4] == t and b[6] >= 1e9 and b[5] < 0]
+        while len(mine) < target:
+            spawn(t)
+            mine.append(balls[-1])
+            effects.append({"type": "poof", "t0": t_now, "x": balls[-1][0], "y": balls[-1][1], "team": t})
+        while len(mine) > target:
+            b = mine.pop()
+            balls.remove(b)
+            effects.append({"type": "poof", "t0": t_now, "x": b[0], "y": b[1], "team": t})
+
+fi = 0
+while True:
     t_frame = fi / FPS
-    if t_frame < BATTLE:
+    if BATTLE is None:
         for idx, pt in enumerate(POWER_TIMES):
             if t_frame >= pt and idx not in fired:
                 fired.add(idx)
@@ -302,13 +325,22 @@ for fi in range(int(SIM_END * FPS) + 1):
     for b in balls:   # giant phase over: back to normal speed
         if t_frame >= b[5] > 0:
             sp = math.hypot(b[2], b[3]); b[2], b[3] = b[2] / sp * SPEED, b[3] / sp * SPEED; b[5] = -1.0
-    if BATTLE - FRENZY <= t_frame < BATTLE and not frenzy_on:
+    if t_frame >= OT_START and not frenzy_on:
         frenzy_on = True
-        SPEED *= 1.35
-        for b in balls:
-            b[2] *= 1.35; b[3] *= 1.35
-    if t_frame >= BATTLE:
-        if WIN is None:      # time is up: the leader wipes out everyone else
+    if frenzy_on and BATTLE is None:
+        if fi % 12 == 0:                     # every 0.4 s: rebalance and speed up a little
+            rebalance(t_frame)
+            new_speed = min(BASE_SPEED * 1.9, max(SPEED, BASE_SPEED * 1.25) * 1.04)
+            for b in balls:
+                sp = math.hypot(b[2], b[3])
+                if sp > 0 and t_frame >= b[5]:
+                    b[2], b[3] = b[2] / sp * new_speed, b[3] / sp * new_speed
+            SPEED = new_speed
+        share_now = np.bincount(grid.ravel(), minlength=NT) / grid.size
+        if (share_now > OUT_SHARE).sum() <= 1 or t_frame >= OT_START + OT_CAP:
+            BATTLE = t_frame
+    if BATTLE is not None and t_frame >= BATTLE:
+        if WIN is None:      # one side is (all but) out: the winner takes the last cells
             counts = np.bincount(grid.ravel(), minlength=NT)
             WIN = int(np.argmax(counts))
             LEAD_SHARE = counts / grid.size
@@ -321,17 +353,24 @@ for fi in range(int(SIM_END * FPS) + 1):
             jj, ii = np.mgrid[0:GN, 0:GN]
             DIST = np.hypot((ii + 0.5) * CS - SC[0], (jj + 0.5) * CS - SC[1])
             DMAX = DIST.max() + CS
-            SWEEP = 1.5
+            SWEEP = 0.6 if LEAD_SHARE[WIN] >= 1 - OUT_SHARE * (NT - 1) else 1.5
             shakes.append((BATTLE, 0.6, 16))
+            SIM_END = BATTLE + SWEEP + KO_HOLD
         k = min(1.0, (t_frame - BATTLE) / SWEEP)
         rad = DMAX * (1 - (1 - k) ** 2)
         grid[DIST <= rad] = WIN
     frames_grid.append(grid.copy())
-    frames_balls.append([(b[0], b[1], b[4], t_frame < b[5], b[6] < 1e9) for b in balls])
+    frames_balls.append([(b[0], b[1], b[4], t_frame < b[5], b[6] < 1e9,
+                          GIANT_R if t_frame < b[5] else TEAM_R[b[4]]) for b in balls])
     frames_share.append(np.bincount(grid.ravel(), minlength=NT) / grid.size)
-    if fi < int(SIM_END * FPS):
-        for s in range(NSUB):
-            step(dt, t_frame + s * dt)
+    if SIM_END is not None and fi >= int(SIM_END * FPS):
+        break
+    for s in range(NSUB):
+        step(dt, t_frame + s * dt)
+    fi += 1
+FINISH = SIM_END - BATTLE
+DUR = INTRO + SIM_END + OUTRO
+N = int(DUR * FPS)
 
 WIN_PCT = int(round(LEAD_SHARE[WIN] * 100))
 CARD_SUB = "Took the whole map!" if EN else "کل زمین رو گرفت!"
@@ -357,12 +396,14 @@ if FORMAT == "cup":
     FOLLOW_LINE = "فالو کن ببینی کی میره بالا"
 shares_b = frames_share[: int(BATTLE * FPS)]
 lead_changes = sum(1 for a, b in zip(shares_b[FPS::FPS], shares_b[2 * FPS::FPS]) if np.argmax(a) != np.argmax(b))
-print(f"seed={SEED} format={FORMAT} teams={[t[0] for t in TEAMS]} winner={TEAMS[WIN][0]} lead={WIN_PCT}% "
+print(f"seed={SEED} format={FORMAT} teams={[t[0] for t in TEAMS]} winner={TEAMS[WIN][0]} lead={WIN_PCT}% ko_t={BATTLE:.1f} "
       f"lead_changes={lead_changes} powers={[(p['kind'], round(p['t0'], 1), TEAMS[p['team']][0]) for p in powers]}")
 if os.environ.get("DRY"):
     print("share every 2s:", [" ".join(f"{s:.2f}" for s in frames_share[i]) for i in range(0, len(frames_share), 2 * FPS)])
     if os.environ.get("SAVE_DRY") and FORMAT == "cup":     # used by build_season.py to play a season ahead
         cup.save(CUP_STATE)
+    if os.environ.get("SAVE_DRY") and FORMAT == "worldcup":
+        wc.save(WC_STATE)
     sys.exit()
 
 # ---------------- audio ----------------
@@ -382,10 +423,11 @@ for t0, ti in captures:
         last[ti] = t0
         add(tone(team_freq[ti] * rng.choice([1, 1.122, 1.26]), int(SR * 0.12), 38), t0, 0.2)
 add(sfx.bell(2), 0.0, 0.75)                                                             # ding ding: fight!
-add(sfx.drum_loop(BATTLE, 128, BATTLE - FRENZY), 0.0, 0.32)                            # beat under the fight
-for k in range(int(FRENZY)):                                                              # countdown beeps
-    add(tone(880 if k < 3 else 660, int(SR * 0.18), 14, 0.1), BATTLE - 1 - k, 0.7 if k < 3 else 0.5)
-tb = BATTLE - FRENZY
+add(sfx.drum_loop(BATTLE, 128, OT_START), 0.0, 0.32)                                    # beat under the fight
+for k in range(3):                                                                        # countdown to the final round
+    add(tone(660, int(SR * 0.18), 14, 0.1), OT_START - 3 + k, 0.55)
+add(sfx.bell(2), OT_START, 0.7)                                                           # final round!
+tb = OT_START
 while tb < BATTLE:                                                                        # heartbeat
     for off, g in ((0.0, 0.9), (0.16, 0.6)):
         add(np.sin(2 * np.pi * 55 * np.arange(int(SR * 0.18)) / SR) * np.exp(-np.arange(int(SR * 0.18)) / SR * 22), tb + off, g)
@@ -523,11 +565,13 @@ def flag_disc(t, diam):
 def draw_balls(img, pos, tnow):
     lay = Image.new("RGBA", (W * 2, H * 2), (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
-    for (x, y, t, giant, clone) in pos:
+    for (x, y, t, giant, clone, rad) in pos:
         cx, cy = (AX + x) * 2, (AY + y) * 2
         c = shade(TEAMS[t][1], 1.15)
+        if rad > BR * 1.15:      # a powered-up ball in the final round is drawn like a giant one
+            giant = True
         if TEAM_FLAGS:           # country balls: the flag inside a ring of the team color
-            r = (GIANT_R * 2 * (1 + 0.06 * math.sin(tnow * 30))) if giant else BR * 2 * (1.25 if clone else 1.0)
+            r = (rad * 2 * (1 + 0.06 * math.sin(tnow * 30))) if giant else BR * 2 * (1.25 if clone else 1.0)
             ring = 18 if giant else 8
             d.ellipse([cx - r - ring, cy - r - ring, cx + r + ring, cy + r + ring],
                       fill=(shade(TEAMS[t][1], 1.5) if giant else (255, 255, 255)) + (255,))
@@ -536,7 +580,7 @@ def draw_balls(img, pos, tnow):
             lay.alpha_composite(sp, (int(cx - sp.width / 2), int(cy - sp.height / 2)))
             continue
         if giant:
-            r = GIANT_R * 2 * (1 + 0.06 * math.sin(tnow * 30))
+            r = rad * 2 * (1 + 0.06 * math.sin(tnow * 30))
             d.ellipse([cx - r - 16, cy - r - 16, cx + r + 16, cy + r + 16], fill=shade(TEAMS[t][1], 1.5) + (255,))
             d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=c + (255,))
             h = r * 0.3
@@ -943,6 +987,7 @@ PREVIEW_AT = sorted({int(1.0 * FPS)} | {int((p["t0"] + 0.35) * FPS) for p in pow
                     | {int((e["t0"] + 0.25) * FPS) for e in effects if e["type"] == "hammer"}
                     | {int((e["t1"] + 0.1) * FPS) for e in effects if e["type"] in ("hammer", "shield")}
                     | {int((e["t0"] + 0.03) * FPS) for e in effects if e["type"] == "bolt"}
+                    | {int((OT_START + 0.3) * FPS), int((OT_START + 2.5) * FPS), int((BATTLE - 0.4) * FPS)}
                     | {int((BATTLE + 0.6) * FPS), int((SIM_END + 1.4) * FPS)})
 INTRO_F = int(round(INTRO * FPS))
 PREVIEW_V = ({INTRO_F + f for f in PREVIEW_AT} | {int(0.8 * FPS), int(1.9 * FPS), int(2.45 * FPS),
@@ -992,22 +1037,26 @@ for fv in range(N):
         if INTRO:
             big_word(img, "FIGHT!" if EN else "شروع!", tnow, (255, 230, 80), 0.7)
         big_word(img, "K.O.!", tnow - KO_T, (255, 70, 70), SIM_END - KO_T + 0.05)
-        if BATTLE - FRENZY <= tnow < BATTLE:
-            pulse = 0.5 + 0.5 * math.sin((tnow - (BATTLE - FRENZY)) * 2 * math.pi * 2)
+        big_word(img, "FINAL ROUND!" if EN else "راند آخر!", tnow - OT_START, (255, 90, 90), 0.8)
+        if OT_START <= tnow < BATTLE:
+            pulse = 0.5 + 0.5 * math.sin((tnow - OT_START) * 2 * math.pi * 2)
             lay, d = layer()
             for w_, a_ in ((30, 50), (16, 110), (6, 220)):
                 d.rounded_rectangle([AX - 14, AY - 14, AX + AS + 14, AY + AS + 14], 26,
                                     outline=(255, 50, 50, int(a_ * (0.35 + 0.65 * pulse))), width=w_)
             img.alpha_composite(lay)
         if tnow < BATTLE:
-            left = max(0, math.ceil(BATTLE - tnow))
-            urgent = BATTLE - tnow <= FRENZY
-            tc = (255, 90, 90, 255) if urgent else (255, 255, 255, 200)
-            tsize = 64 + (int(14 * (1 - (BATTLE - tnow) % 1)) if urgent else 0)
-            if EN:
-                label = (f"{left} SECOND{'S' if left != 1 else ''} LEFT!") if urgent else f"0:{left:02d}"
-            else:
-                label = f"{fa(left)} ثانیه‌ی آخر!" if urgent else f"۰:{fa(left).rjust(2, '۰')}"
+            if tnow < OT_START:              # countdown to the final round
+                left = max(0, math.ceil(OT_START - tnow))
+                urgent = OT_START - tnow <= 3
+                tc = (255, 90, 90, 255) if urgent else (255, 255, 255, 200)
+                tsize = 64 + (int(14 * (1 - (OT_START - tnow) % 1)) if urgent else 0)
+                label = f"0:{left:02d}" if EN else f"۰:{fa(left).rjust(2, '۰')}"
+            else:                            # final round: until someone is out
+                pulse = 0.5 + 0.5 * math.sin((tnow - OT_START) * 2 * math.pi * 2)
+                tc = (255, 90, 90, 255)
+                tsize = 60 + int(10 * pulse)
+                label = "LAST ONE STANDING WINS!" if EN else "تا آخرین نفس!"
             if not any(p.get("cy", 0) > AY + AS and p["t0"] <= tnow < p["t0"] + 1.3 for p in powers):
                 text(img, (W / 2, AY + AS + 90), label, tsize, tc)     # (a shield banner may sit here)
         else:

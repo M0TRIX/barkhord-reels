@@ -1,6 +1,6 @@
 """Play the rest of the City Cup ahead of time and render every video, with a publishing date for each.
 
-Usage: python3 build_season.py plan     -> decides every match (picks the most dramatic of a few seeds),
+Usage: [SERIES=worldcup] [START=YYYY-MM-DD] python3 build_season.py plan     -> decides every match (picks the most dramatic of a few seeds),
                                            writes season/plan.json and the state snapshots
        python3 build_season.py render   -> renders every video in the plan that is not rendered yet (2 at a time)
        python3 build_season.py texts    -> prints the upload list (date, title, description, tags, comment)
@@ -13,10 +13,19 @@ import datetime, json, os, re, shutil, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SEASON = os.path.join(HERE, "season")
-PLAN = os.path.join(SEASON, "plan.json")
 sys.path.insert(0, HERE)
 import cup
+import worldcup as wc
+
+# SERIES=cup (default): City Cup, Persian, Instagram days at 22:00, folder season/
+# SERIES=worldcup: World Cup of Countries, English, YouTube only, every day at 16:00, folder season_wc/
+SERIES = os.environ.get("SERIES", "cup")
+if SERIES == "worldcup":
+    S, STATE_ENV, FMT, SEASON, DAILY, HOUR = wc, "WCUP_STATE", "worldcup", os.path.join(HERE, "season_wc"), True, "16:00"
+else:
+    S, STATE_ENV, FMT, SEASON, DAILY, HOUR = cup, "CUP_STATE", "cup", os.path.join(HERE, "season"), False, "22:00"
+PLAN = os.path.join(SEASON, "plan.json")
+FINAL_ROUND = len(S.ROUND_NAMES) - 1
 
 IG_DAYS = {5, 6, 0, 2, 3}          # Sat, Sun, Mon, Wed, Thu (Python weekday numbers)
 SEEDS_TRIED = 6
@@ -36,68 +45,76 @@ def fa_date(d):
 def ig_dates(start):
     d = start
     while True:
-        if d.weekday() in IG_DAYS:
+        if DAILY or d.weekday() in IG_DAYS:
             yield d
         d += datetime.timedelta(days=1)
 
 
 def dry(state_path, seed, today, save=False):
-    env = dict(os.environ, CUP_STATE=state_path, DRY="1", TODAY=today)
+    env = dict(os.environ, DRY="1", TODAY=today)
+    env[STATE_ENV] = state_path
     if save:
         env["SAVE_DRY"] = "1"
-    out = subprocess.run([sys.executable, os.path.join(HERE, "battle.py"), "/tmp/dry.mp4", str(seed), "cup"],
+    out = subprocess.run([sys.executable, os.path.join(HERE, "battle.py"), "/tmp/dry.mp4", str(seed), FMT],
                          env=env, capture_output=True, text=True, check=True).stdout
-    m = re.search(r"winner=(\S+) lead=(\d+)% lead_changes=(\d+)", out)
-    return m.group(1), int(m.group(2)), int(m.group(3))
+    m = re.search(r"winner=(.+?) lead=(\d+)% ko_t=([\d.]+) lead_changes=(\d+)", out)
+    return m.group(1), float(m.group(3)), int(m.group(4))
 
 
 def plan():
     os.makedirs(SEASON, exist_ok=True)
-    state = cup.load()
+    state = S.load()
     snap = os.path.join(SEASON, "state_000.json")
     with open(snap, "w", encoding="utf-8") as fh:
         json.dump(state, fh, ensure_ascii=False, indent=2)
+    start = os.environ.get("START")
     tomorrow = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=3, minutes=30)).date() + datetime.timedelta(days=1)
-    dates = ig_dates(tomorrow)
+    dates = ig_dates(datetime.date.fromisoformat(start) if start else tomorrow)
     items, n, base_seed = [], 0, 1792000000
     while True:
         st = json.load(open(snap, encoding="utf-8"))
-        rd = cup.round_to_recap(st)
+        rd = S.round_to_recap(st)
         n += 1
         day = next(dates)
         if rd is not None:                     # a round just finished: its recap
             st.setdefault("recaps_done", []).append(rd)
             nxt = os.path.join(SEASON, f"state_{n:03d}.json")
             json.dump(st, open(nxt, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-            items.append({"n": n, "date": day.isoformat(), "date_fa": fa_date(day), "kind": "recap", "round": rd,
-                          "label": "نتایج " + cup.ROUND_NAMES[rd], "state": os.path.relpath(snap, HERE),
-                          "video": f"season/{n:02d}_recap_{rd}.mp4"})
+            items.append({"n": n, "date": day.isoformat(), "date_fa": fa_date(day), "time": HOUR, "kind": "recap", "round": rd,
+                          "label": S.ROUND_NAMES[rd], "state": os.path.relpath(snap, HERE),
+                          "video": f"{os.path.basename(SEASON)}/{n:02d}_recap_{rd}.mp4"})
             snap = nxt
-            if rd == 3:
+            if rd == FINAL_ROUND:
                 break
             continue
-        r, m = cup.pending(st)
+        r, m = S.pending(st)
         a, b, _ = st["rounds"][r][m]
+        if SERIES == "worldcup":
+            a, b = wc.name(a), wc.name(b)
         best = None
-        for k in range(SEEDS_TRIED):           # the most lead changes, then the closest finish
+        for k in range(SEEDS_TRIED):           # the most lead changes, then a final round of about 5 s
             seed = base_seed + n * 100 + k
-            w, lead, changes = dry(snap, seed, day.isoformat())
-            score = (min(changes, 6), -abs(lead - 52))
+            w, ko_t, changes = dry(snap, seed, day.isoformat())
+            score = (min(changes, 6), -abs(ko_t - 17.0))
             if best is None or score > best[0]:
-                best = (score, seed, w, lead, changes)
+                best = (score, seed, w, ko_t, changes)
         _, seed, w, lead, changes = best
         nxt = os.path.join(SEASON, f"state_{n:03d}.json")
         shutil.copy(snap, nxt)
         w2, _, _ = dry(nxt, seed, day.isoformat(), save=True)
         assert w2 == w, (w, w2)
-        items.append({"n": n, "date": day.isoformat(), "date_fa": fa_date(day), "kind": "cup", "round": r, "match": m,
-                      "teams": [a, b], "winner": w, "lead": lead, "lead_changes": changes, "seed": seed,
-                      "label": cup.match_label(r, m), "state": os.path.relpath(snap, HERE),
-                      "video": f"season/{n:02d}_{r}_{m}.mp4", "bracket": f"season/{n:02d}_bracket.png"})
-        print(n, day, a, "vs", b, "->", w, f"{lead}% changes={changes}", flush=True)
+        folder = os.path.basename(SEASON)
+        it = {"n": n, "date": day.isoformat(), "date_fa": fa_date(day), "time": HOUR, "kind": "cup", "round": r, "match": m,
+              "teams": [a, b], "winner": w, "ko_t": lead, "lead_changes": changes, "seed": seed,
+              "label": S.match_label(r, m), "state": os.path.relpath(snap, HERE),
+              "video": f"{folder}/{n:02d}_{r}_{m}.mp4"}
+        if SERIES == "cup":
+            it["bracket"] = f"{folder}/{n:02d}_bracket.png"
+        items.append(it)
+        print(n, day, a, "vs", b, "->", w, f"ko {lead}s changes={changes}", flush=True)
         snap = nxt
-    json.dump({"season": 1, "items": items, "final_state": os.path.relpath(snap, HERE)},
-              open(PLAN, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    json.dump({"series": SERIES, "season": json.load(open(snap, encoding="utf-8"))["season"], "items": items,
+               "final_state": os.path.relpath(snap, HERE)}, open(PLAN, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     print("planned", len(items), "videos; champion:", json.load(open(snap, encoding="utf-8"))["champion"])
 
 
@@ -107,18 +124,20 @@ def render_one(it):
         return it["n"], "already"
     work = f"/tmp/season_state_{it['n']:03d}.json"
     shutil.copy(os.path.join(HERE, it["state"]), work)      # the renderer saves into its copy, not the snapshot
-    env = dict(os.environ, CUP_STATE=work, TODAY=it["date"])
+    env = dict(os.environ, TODAY=it["date"])
+    env[STATE_ENV] = work
     if it["kind"] == "cup":
-        res = subprocess.run([sys.executable, os.path.join(HERE, "battle.py"), out, str(it["seed"]), "cup"],
+        res = subprocess.run([sys.executable, os.path.join(HERE, "battle.py"), out, str(it["seed"]), FMT],
                              env=env, capture_output=True, text=True)
         if res.returncode == 0:
-            m = re.search(r"winner=(\S+)", res.stdout)
+            m = re.search(r"winner=(.+?) lead=", res.stdout)
             if not m or m.group(1) != it["winner"]:
                 return it["n"], f"WINNER MISMATCH {m.group(1) if m else '?'} != {it['winner']}"
-            subprocess.run([sys.executable, os.path.join(HERE, "cup.py"), "bracket", os.path.join(HERE, it["bracket"])],
-                           env=env, check=True, capture_output=True)   # work now holds the state after this match
+            if it.get("bracket"):
+                subprocess.run([sys.executable, os.path.join(HERE, "cup.py"), "bracket", os.path.join(HERE, it["bracket"])],
+                               env=env, check=True, capture_output=True)   # work now holds the state after this match
     else:
-        res = subprocess.run([sys.executable, os.path.join(HERE, "recap.py"), out, "cup", str(it["round"])],
+        res = subprocess.run([sys.executable, os.path.join(HERE, "recap.py"), out, FMT, str(it["round"])],
                              env=env, capture_output=True, text=True)
     return it["n"], "ok" if res.returncode == 0 else "FAILED " + res.stderr[-400:]
 
