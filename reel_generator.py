@@ -275,6 +275,8 @@ meta = {
     "seed": SEED, "format": "ring", "hits": total_hits, "duration": round(DUR, 2),
     "instagram_caption": caption,
     "first_comment": first_comment,
+    "youtube_title": f"{HOOK} 🌀 #shorts"[:100],
+    "youtube_tags": ["توپ", "حلقه"] + captions.BASE_TAGS,
     # cover = a frame with the ball already large, hook text visible, ending not revealed
     "cover_ms": int(T_FILL * 0.82 * 1000),
 }

@@ -116,3 +116,23 @@ def cup(rng, names, winner, round_name, info):
         na, nb = info["next"]
         first = f"✅ {winner} رفت {info['advanced_to']}\n🔜 بازی بعد: {na} و {nb}\nشهر تو کجای جدوله؟ 👇"
     return caption, first
+
+
+BASE_TAGS = ["ایران", "شبیه سازی", "simulation", "satisfying", "shorts"]
+
+
+def youtube(fmt, names, round_name=None):
+    """(title, tags) for the YouTube Short of a battle reel."""
+    if fmt == "cup":
+        title = f"{names[0]} یا {names[1]}؟ 🔥 جام شهرها | {round_name} #shorts"
+        tags = ["جام شهرها"] + names
+    elif fmt == "derby":
+        title = "پرسپولیس یا استقلال؟ 🔴🔵 دربی توپ‌ها #shorts"
+        tags = ["پرسپولیس", "استقلال", "دربی"]
+    elif fmt == "cities":
+        title = f"{or_fa(names)}؟ 🏙️ نبرد شهرها #shorts"
+        tags = ["نبرد شهرها"] + names
+    else:
+        title = f"{or_fa(names)}؟ کدوم رنگ می‌بره؟ 🎨 #shorts"
+        tags = ["رنگ"] + names
+    return title[:100], tags + BASE_TAGS

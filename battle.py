@@ -618,9 +618,11 @@ if FORMAT == "cup":
     cup.save(CUP_STATE)
 else:
     caption, first = getattr(captions, FORMAT)(rng, names, TEAMS[WIN][0])
+yt_title, yt_tags = captions.youtube(FORMAT, names, cup.ROUND_NAMES[CUP_R] if FORMAT == "cup" else None)
 meta = {"seed": SEED, "format": FORMAT, "teams": names, "winner": TEAMS[WIN][0], "lead_pct_at_whistle": WIN_PCT,
         "powers": [[p["kind"], TEAMS[p["team"]][0]] for p in powers], "duration": round(DUR, 2),
         "instagram_caption": caption, "first_comment": first,
+        "youtube_title": yt_title, "youtube_tags": yt_tags,
         "cover_ms": int((POWER_TIMES[1] + 0.4) * 1000)}
 with open(os.path.splitext(OUT)[0] + ".json", "w", encoding="utf-8") as fh:
     json.dump(meta, fh, ensure_ascii=False, indent=2)
