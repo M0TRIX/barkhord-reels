@@ -59,6 +59,12 @@ elif FORMAT == "cities":
     TEAMS = [(names[i], hexc(cols[i])) for i in range(n)]
     HOOK, SUB = "کدوم شهر می‌بره؟", "شهرتو کامنت کن، نوبت اونم میشه"
     CTA_END = "شهر تو نبود؟ کامنت کن"
+elif FORMAT == "request":     # a viewer's requested match: MATCH="نهاوند,تبریز"
+    names = [s.strip() for s in os.environ["MATCH"].split(",")][:2]
+    cols = rng.sample(CITY_COLORS, 2)
+    TEAMS = [(names[i], hexc(cols[i])) for i in range(2)]
+    HOOK, SUB = f"{names[0]} یا {names[1]}؟", "بازی درخواستی شما"
+    CTA_END = "بازی بعدی رو کامنت کن"
 elif FORMAT == "cup":
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import cup
@@ -98,7 +104,7 @@ INTRO = 2.8 if NT == 2 else 0.0              # wrestling-style entrance before t
 DUR = INTRO + SIM_END + OUTRO
 N = int(DUR * FPS)
 AX, AY, AS = 60, 540, 960           # arena square
-GN = 25 if FORMAT in ("cup", "worldcup") else 24  # grid cells per side (odd count = no ties)
+GN = 25 if FORMAT in ("cup", "worldcup", "request") else 24  # grid cells per side (odd count = no ties)
 CS = AS / GN
 BR = 24 if EN else 17               # ball radius (bigger for flag balls)
 SPEED = rng.uniform(700, 820)
@@ -138,15 +144,27 @@ for t in range(NT):
         spawn(t)
 
 # ---- special powers: the team in last place gets one, which keeps the lead changing ----
-POWER_NAME = {"giant": "توپ غول‌پیکر", "rpg": "آرپی‌جی", "lightning": "صاعقه", "clone": "تکثیر"}
+POWER_NAME = {"giant": "توپ غول‌پیکر", "rpg": "آرپی‌جی", "lightning": "رعد و برق", "clone": "تکثیر",
+              "hammer": "چکش غول‌پیکر", "shield": "سپر دفاعی"}
 if EN:
-    POWER_NAME = {"giant": "GIANT BALL", "rpg": "RPG", "lightning": "LIGHTNING", "clone": "CLONES"}
+    POWER_NAME = {"giant": "GIANT BALL", "rpg": "RPG", "lightning": "THUNDERSTORM", "clone": "CLONES",
+                  "hammer": "GIANT HAMMER", "shield": "SHIELD"}
 FRENZY = 5.0                         # the last seconds: faster balls, more powers
 POWER_TIMES = [rng.uniform(2.0, 2.6), rng.uniform(5.8, 6.6), rng.uniform(8.4, 9.0),
                BATTLE - rng.uniform(4.3, 4.0), BATTLE - rng.uniform(2.3, 2.0)]
-POWER_KINDS = rng.sample(list(POWER_NAME), 3)
-POWER_KINDS += [rng.choice([k for k in ("rpg", "lightning", "giant") if k != POWER_KINDS[-1]])]
-POWER_KINDS += [rng.choice([k for k in ("rpg", "lightning", "giant") if k != POWER_KINDS[-1]])]
+ATTACKS = ("rpg", "lightning", "giant", "hammer")
+POWER_KINDS = rng.sample(["giant", "rpg", "lightning", "clone", "hammer"], 3)
+if "hammer" not in POWER_KINDS:     # the hammer is in every video
+    POWER_KINDS[rng.choice([1, 2])] = "hammer"
+POWER_KINDS += [rng.choice([k for k in ATTACKS if k != POWER_KINDS[-1] and k != "hammer"])]
+POWER_KINDS += [rng.choice([k for k in ATTACKS if k != POWER_KINDS[-1]])]
+# defence: one mid-match RPG or hammer hits a shield the other side raises just in time
+_cands = [i for i in (1, 2, 3) if POWER_KINDS[i] == "rpg"] or [i for i in (1, 2, 3) if POWER_KINDS[i] == "hammer"]
+if not _cands:
+    POWER_KINDS[3] = "rpg" if POWER_KINDS[2] != "rpg" and POWER_KINDS[4] != "rpg" else "hammer"
+    _cands = [3]
+BLOCK_IDX = _cands[0]
+HAMMER_L, HAMMER_HL, HAMMER_HT = 330, 220, 135     # handle length, head length and thickness (px)
 powers, pending, effects, shakes, captures = [], [], [], [], []
 
 def capture_disc(cx, cy, rad, team, t_now):
@@ -170,7 +188,18 @@ def enemy_target(team, rad):
     j, i = divmod(k, GN)
     return (i + 0.5) * CS, (j + 0.5) * CS
 
-def trigger_power(kind, t0, team):
+BANNER_TOP, BANNER_LOW = AY + 120, AY + AS - 130
+
+def raise_shield(tx, ty, rad, t1, attacker, cy=BANNER_LOW, lead=0.42):
+    """The defender throws up a dome over the target just before the hit; returns the radius that still gets through."""
+    owner = int(grid[min(GN - 1, int(ty // CS)), min(GN - 1, int(tx // CS))])
+    defender = owner if owner != attacker else next(t for t in range(NT) if t != attacker)
+    powers.append({"kind": "shield", "t0": t1 - lead, "team": defender, "cy": cy})
+    effects.append({"type": "shield", "t0": t1 - lead, "t1": t1, "x": tx, "y": ty, "rad": rad * 1.1,
+                    "team": defender, "seed": rng.randrange(10 ** 6)})
+    return rad * 0.32
+
+def trigger_power(kind, t0, team, blocked=False):
     mine = [b for b in balls if b[4] == team]
     powers.append({"kind": kind, "t0": t0, "team": team})
     if kind == "giant":
@@ -184,20 +213,37 @@ def trigger_power(kind, t0, team):
         rad = 4.8 * CS
         tx, ty = enemy_target(team, rad)
         t1 = t0 + 0.6
-        effects.append({"type": "rpg", "t0": t0, "t1": t1, "x0": b[0], "y0": b[1], "x1": tx, "y1": ty, "team": team, "rad": rad})
-        pending.append((t1, lambda: capture_disc(tx, ty, rad, team, t1)))
+        hit = raise_shield(tx, ty, rad, t1, team) if blocked else rad
+        effects.append({"type": "rpg", "t0": t0, "t1": t1, "x0": b[0], "y0": b[1], "x1": tx, "y1": ty, "team": team, "rad": hit})
+        pending.append((t1, lambda: capture_disc(tx, ty, hit, team, t1)))
         shakes.append((t1, 0.45, 20))
+    elif kind == "hammer":
+        rad = 5.3 * CS
+        tx, ty = enemy_target(team, rad)
+        t1 = t0 + 0.55
+        # its banner goes where the raised hammer and the impact are not; a shield's banner takes the other spot
+        powers[-1]["cy"] = BANNER_TOP if ty > 740 else BANNER_LOW
+        # a shield against the hammer comes up during the wind-up; its banner sits under the arena, clear of the swing
+        hit = raise_shield(tx, ty, rad, t1, team, cy=AY + AS + 100, lead=0.3) if blocked else rad
+        side = 1 if tx < AS / 2 else -1          # the handle's pivot sits toward the middle
+        effects.append({"type": "hammer", "t0": t0, "t1": t1, "x": tx, "y": ty, "side": side, "team": team,
+                        "rad": hit, "seed": rng.randrange(10 ** 6)})
+        pending.append((t1, lambda: capture_disc(tx, ty, hit, team, t1)))
+        shakes.append((t1, 0.6, 34 if not blocked else 18))
     elif kind == "lightning":
         rad = 2.4 * CS
+        effects.append({"type": "storm", "t0": t0, "t1": t0 + 1.75, "team": team, "seed": rng.randrange(10 ** 6)})
+        powers[-1]["cy"] = BANNER_LOW
         for k in range(5):
             ts = t0 + 0.2 + k * 0.2
-            def strike(ts=ts):
+            def strike(ts=ts, k=k):
                 x, y = enemy_target(team, rad)
+                # only two of the five strikes flash the screen: under 3 flashes a second (photosensitivity)
                 effects.append({"type": "bolt", "t0": ts, "x": x, "y": y, "team": team,
-                                "seed": rng.randrange(10 ** 6), "rad": rad})
+                                "seed": rng.randrange(10 ** 6), "rad": rad, "flash": k in (0, 3)})
                 capture_disc(x, y, rad, team, ts)
             pending.append((ts, strike))
-            shakes.append((ts, 0.15, 9))
+            shakes.append((ts, 0.22, 16))
     elif kind == "clone":
         for k in range(3):
             src = rng.choice(mine)
@@ -245,7 +291,7 @@ for fi in range(int(SIM_END * FPS) + 1):
             if t_frame >= pt and idx not in fired:
                 fired.add(idx)
                 share_now = np.bincount(grid.ravel(), minlength=NT)
-                trigger_power(POWER_KINDS[idx], pt, int(np.argmin(share_now)))
+                trigger_power(POWER_KINDS[idx], pt, int(np.argmin(share_now)), blocked=(idx == BLOCK_IDX))
     for ev in [e for e in pending if t_frame >= e[0]]:
         pending.remove(ev)
         ev[1]()
@@ -340,6 +386,9 @@ while tb < BATTLE:                                                              
         add(np.sin(2 * np.pi * 55 * np.arange(int(SR * 0.18)) / SR) * np.exp(-np.arange(int(SR * 0.18)) / SR * 22), tb + off, g)
     tb += 0.5
 for p in powers:
+    if p["kind"] == "shield":
+        add(sfx.shield_up(0.42), p["t0"], 0.6)
+        continue
     add(sfx.rise(0.5), p["t0"], 0.45)
     if p["kind"] == "clone":
         for k in range(3):
@@ -348,8 +397,16 @@ for e in effects:
     if e["type"] == "rpg":
         add(sfx.whoosh(0.6, seed=int(e["t0"] * 100)), e["t0"], 0.55)
         add(sfx.boom(1.4, seed=int(e["t1"] * 100)), e["t1"], 1.0)
+    elif e["type"] == "hammer":
+        add(sfx.whoosh(0.3, seed=int(e["t0"] * 100), rising=False), e["t1"] - 0.22, 0.6)
+        add(sfx.clang(seed=int(e["t1"] * 100)), e["t1"], 1.0)
+        add(sfx.boom(1.2, seed=int(e["t1"] * 100) + 1), e["t1"], 0.55)
+    elif e["type"] == "shield":
+        add(sfx.shatter(seed=int(e["t1"] * 100)), e["t1"] + 0.02, 0.75)
     elif e["type"] == "bolt":
-        add(sfx.thunder(0.9, seed=int(e["t0"] * 100)), e["t0"], 0.6)
+        add(sfx.thunderclap(1.6, seed=int(e["t0"] * 100)), e["t0"], 0.75)
+    elif e["type"] == "storm":
+        add(sfx.rain(e["t1"] - e["t0"] + 0.3, seed=int(e["t0"] * 100)), e["t0"], 0.35)
     elif e["type"] == "poof" and e["t0"] >= BATTLE:
         add(sfx.pop(420), e["t0"] + rng.uniform(0, 0.15), 0.6)
 add(sfx.whistle(), BATTLE, 0.7)                               # time!
@@ -500,6 +557,10 @@ def effects_active(tnow):
             return True
         if e["type"] == "poof" and e["t0"] <= tnow < e["t0"] + 0.4:
             return True
+        if e["type"] == "hammer" and e["t1"] <= tnow < e["t1"] + 0.7:
+            return True
+        if e["type"] == "shield" and e["t0"] <= tnow < e["t1"] + 0.5:
+            return True
     return WIN is not None and BATTLE <= tnow < BATTLE + SWEEP + 0.3
 
 def draw_effects(img, tnow):
@@ -540,17 +601,8 @@ def draw_effects(img, tnow):
                 R2 = R * 0.65
                 d.ellipse([x - R2, y - R2, x + R2, y + R2], fill=(255, 230, 120, int(a * 0.8)))
                 d.ellipse([x - R * 1.15, y - R * 1.15, x + R * 1.15, y + R * 1.15], outline=(255, 255, 255, a), width=8)
-        elif e["type"] == "bolt" and e["t0"] - 0.05 <= tnow < e["t0"] + 0.22:
-            br = random.Random(e["seed"])
+        elif e["type"] == "bolt" and e["t0"] <= tnow < e["t0"] + 0.22:   # the bolt itself is drawn by draw_storm
             x1, y1 = AX + e["x"], AY + e["y"]
-            pts = [(x1 + br.uniform(-60, 60), AY - 60)]
-            for q in range(1, 8):
-                f = q / 8
-                pts.append((pts[0][0] + (x1 - pts[0][0]) * f + br.uniform(-38, 38), AY - 60 + (y1 - AY + 60) * f))
-            pts.append((x1, y1))
-            a = 255 if tnow >= e["t0"] else 120
-            d.line(pts, fill=shade(col, 1.3) + (a,), width=22, joint="curve")
-            d.line(pts, fill=(255, 255, 255, a), width=8, joint="curve")
             if tnow >= e["t0"]:
                 k = (tnow - e["t0"]) / 0.22
                 R = e["rad"] * (0.6 + 0.8 * k)
@@ -560,6 +612,56 @@ def draw_effects(img, tnow):
             x, y = AX + e["x"], AY + e["y"]
             R = 20 + 70 * k
             d.ellipse([x - R, y - R, x + R, y + R], outline=shade(col, 1.4) + (int(255 * (1 - k)),), width=7)
+        elif e["type"] == "hammer" and e["t1"] <= tnow < e["t1"] + 0.7:      # impact: flash, cracks, dust ring
+            k = (tnow - e["t1"]) / 0.7
+            x, y = AX + e["x"], AY + e["y"]
+            rad = max(e["rad"], 2.2 * CS)
+            if k < 0.2:
+                R = rad * (0.5 + 2.5 * k)
+                d.ellipse([x - R, y - R, x + R, y + R], fill=(255, 255, 255, int(230 * (1 - k / 0.2))))
+            a = int(255 * min(1, (1 - k) / 0.4))
+            cr = random.Random(e["seed"])
+            L = rad * 1.35 * ease_out(k / 0.18)
+            for q in range(10):
+                ang = q * 2 * math.pi / 10 + cr.uniform(-0.25, 0.25)
+                pts = [(x, y)]
+                for s in range(1, 6):
+                    rr = L * s / 5
+                    a2 = ang + cr.uniform(-0.28, 0.28)
+                    pts.append((x + math.cos(a2) * rr, y + math.sin(a2) * rr))
+                d.line(pts, fill=(25, 20, 35, a), width=9, joint="curve")
+                d.line(pts, fill=(255, 235, 200, int(a * 0.55)), width=3, joint="curve")
+            R = rad * (0.6 + 1.1 * ease_out(k))
+            d.ellipse([x - R, y - R, x + R, y + R], outline=(235, 225, 205, int(200 * (1 - k))), width=int(10 + 26 * (1 - k)))
+        elif e["type"] == "shield" and e["t0"] <= tnow < e["t1"] + 0.5:
+            x, y, R = AX + e["x"], AY + e["y"], e["rad"]
+            c2 = (110, 215, 255)                                 # energy blue, readable on any team colour
+            if tnow < e["t1"]:                                   # dome grows in and hums
+                k = ease_back((tnow - e["t0"]) / 0.22)
+                Rk = R * max(0.05, k)
+                flick = 0.85 + 0.15 * math.sin(tnow * 70)
+                d.ellipse([x - Rk - 18, y - Rk - 18, x + Rk + 18, y + Rk + 18], outline=(70, 190, 255, int(170 * flick)), width=26)
+                d.ellipse([x - Rk, y - Rk, x + Rk, y + Rk], fill=(130, 225, 255, int(125 * flick)))
+                for ring_k, wd, al in ((1.0, 14, 255), (0.78, 6, 200), (0.52, 5, 160)):
+                    rr = Rk * ring_k
+                    d.ellipse([x - rr, y - rr, x + rr, y + rr], outline=(255, 255, 255, int(al * flick)) if ring_k == 1.0 else c2 + (int(al * flick),), width=wd)
+                for q in range(6):                               # hex-like ribs
+                    ang = q * math.pi / 3 + tnow * 1.5
+                    d.line([x + math.cos(ang) * Rk * 0.52, y + math.sin(ang) * Rk * 0.52,
+                            x + math.cos(ang) * Rk, y + math.sin(ang) * Rk], fill=c2 + (int(140 * flick),), width=4)
+            else:                                                # shattered: shards fly out
+                k = (tnow - e["t1"]) / 0.5
+                sr = random.Random(e["seed"])
+                for q in range(16):
+                    ang = sr.uniform(0, 2 * math.pi)
+                    dist = R * (0.5 + 1.0 * ease_out(k)) * sr.uniform(0.7, 1.15)
+                    sx, sy = x + math.cos(ang) * dist, y + math.sin(ang) * dist
+                    sz = sr.uniform(16, 34) * (1 - 0.5 * k)
+                    rot = sr.uniform(0, 6.28) + k * 8
+                    tri = [(sx + math.cos(rot + j * 2.1) * sz, sy + math.sin(rot + j * 2.1) * sz) for j in range(3)]
+                    d.polygon(tri, fill=c2 + (int(230 * (1 - k)),))
+                if k < 0.25:
+                    d.ellipse([x - R, y - R, x + R, y + R], outline=(255, 255, 255, int(255 * (1 - k / 0.25))), width=14)
     if WIN is not None and BATTLE <= tnow < BATTLE + SWEEP + 0.3:   # knockout shockwave
         k = min(1.0, (tnow - BATTLE) / SWEEP)
         R = max(30.0, DMAX * (1 - (1 - k) ** 2))
@@ -570,6 +672,113 @@ def draw_effects(img, tnow):
     # keep effects inside the arena
     lay.putalpha(Image.composite(lay.getchannel("A"), ZERO_L, EFFECT_MASK))
     img.alpha_composite(lay)
+
+def draw_storm(img, tnow, dx=0, dy=0):
+    for e in effects:
+        if e["type"] != "storm" or not (e["t0"] <= tnow < e["t1"]):
+            continue
+        k = (tnow - e["t0"]) / (e["t1"] - e["t0"])
+        dark = min(1, k / 0.12, (1 - k) / 0.2)
+        lay, d = layer()
+        d.rectangle([0, 0, W, H], fill=(8, 10, 30, int(120 * dark)))
+        rr = random.Random(e["seed"])
+        for q in range(150):                              # rain streaks falling at a slant
+            x0 = rr.uniform(-200, W + 100)
+            sp = rr.uniform(1700, 2400)
+            y0 = (rr.uniform(0, H) + tnow * sp) % (H + 200) - 100
+            d.line([x0 + 0.25 * y0, y0, x0 + 0.25 * (y0 + 46), y0 + 46], fill=(190, 210, 255, int(150 * dark)), width=3)
+        img.alpha_composite(lay)
+    lay, d = layer()
+    drawn = False
+    for e in effects:                                     # bolts from the sky, over the dark storm
+        if e["type"] != "bolt" or not (e["t0"] - 0.05 <= tnow < e["t0"] + 0.22):
+            continue
+        drawn = True
+        br = random.Random(e["seed"])
+        col = TEAMS[e["team"]][1]
+        x1, y1 = AX + e["x"] + dx, AY + e["y"] + dy
+        top = 120
+        pts = [(x1 + br.uniform(-90, 90), top)]
+        for q in range(1, 10):
+            f = q / 10
+            pts.append((pts[0][0] + (x1 - pts[0][0]) * f + br.uniform(-42, 42), top + (y1 - top) * f))
+        pts.append((x1, y1))
+        a = 255 if tnow >= e["t0"] else 110
+        d.line(pts, fill=(190, 210, 255, int(a * 0.3)), width=70, joint="curve")
+        for q0 in (3, 6):                                 # side branches
+            bx, by = pts[q0]
+            bpts = [(bx, by)]
+            sgn = br.choice([-1, 1])
+            for q in range(1, 4):
+                bpts.append((bx + sgn * q * br.uniform(28, 50), by + q * br.uniform(30, 52)))
+            d.line(bpts, fill=shade(col, 1.4) + (int(a * 0.85),), width=12, joint="curve")
+            d.line(bpts, fill=(255, 255, 255, int(a * 0.85)), width=5, joint="curve")
+        d.line(pts, fill=shade(col, 1.3) + (a,), width=28, joint="curve")
+        d.line(pts, fill=(255, 255, 255, a), width=12, joint="curve")
+    if drawn:
+        img.alpha_composite(lay)
+    for e in effects:                                     # flash of each strike
+        if e["type"] == "bolt" and e.get("flash") and e["t0"] <= tnow < e["t0"] + 0.13:
+            fa_ = 1 - (tnow - e["t0"]) / 0.13
+            img.alpha_composite(Image.new("RGBA", (W, H), (235, 240, 255, int(150 * fa_))))
+
+def _hammer_shape(d, P, th, s, col, a, ghost=False):
+    """Hammer at angle th (radians) around pivot P, drawn into a 2x layer."""
+    u = (math.cos(th), math.sin(th)); v = (-u[1], u[0])
+    L, HL, HT = HAMMER_L * s * 2, HAMMER_HL * s * 2, HAMMER_HT * s * 2
+    Px, Py = P[0] * 2, P[1] * 2
+    Hc = (Px + u[0] * L, Py + u[1] * L)
+    def quad(c, a0, a1, b0, b1):   # box from a0..a1 along u and b0..b1 along v, around point c
+        return [(c[0] + u[0] * p + v[0] * q, c[1] + u[1] * p + v[1] * q) for p, q in ((a0, b0), (a1, b0), (a1, b1), (a0, b1))]
+    if not ghost:
+        d.polygon(quad((Px, Py), -70 * s, L - HT / 2, -15 * s, 15 * s), fill=(120, 72, 40, a), outline=(60, 34, 18, a), width=int(5 * s))
+        d.polygon(quad((Px, Py), -70 * s, 90 * s, -17 * s, 17 * s), fill=shade(col, 0.7) + (a,))
+    steel = (128, 134, 150) if not ghost else shade(col, 1.3)
+    d.polygon(quad(Hc, -HT / 2, HT / 2, -HL / 2, HL / 2), fill=steel + (a,), outline=(38, 38, 52, a), width=int(10 * s) if not ghost else 0)
+    if ghost:
+        return
+    for sgn in (-1, 1):            # striking faces
+        d.polygon(quad(Hc, -HT / 2 - 6 * s, HT / 2 + 6 * s, sgn * HL / 2 - 30 * s if sgn > 0 else -HL / 2, HL / 2 if sgn > 0 else -HL / 2 + 30 * s),
+                  fill=(84, 88, 104, a), outline=(38, 38, 52, a), width=int(8 * s))
+    d.polygon(quad(Hc, -HT / 2, HT / 2, -20 * s, 20 * s), fill=col + (a,))
+    d.line([(Hc[0] - u[0] * HT * 0.32 - v[0] * HL * 0.3, Hc[1] - u[1] * HT * 0.32 - v[1] * HL * 0.3),
+            (Hc[0] - u[0] * HT * 0.32 + v[0] * HL * 0.3, Hc[1] - u[1] * HT * 0.32 + v[1] * HL * 0.3)],
+           fill=(225, 230, 240, int(a * 0.8)), width=int(8 * s))
+
+def draw_hammer(img, tnow, dx=0, dy=0):
+    for e in effects:
+        if e["type"] != "hammer" or not (e["t0"] <= tnow < e["t1"] + 0.55):
+            continue
+        side = e["side"]
+        X, Y = AX + e["x"] + dx, AY + e["y"] + dy
+        hc = (X, Y - HAMMER_HL / 2 + 14)
+        P = (hc[0] + side * HAMMER_L, hc[1])
+        th_imp = math.pi if side == 1 else 2 * math.pi
+        th_up = 1.5 * math.pi
+        th_back = th_up + side * math.radians(28)
+        rel, s, a, ghosts = tnow - e["t0"], 1.0, 255, []
+        if rel < 0.38:                                     # pops in and winds up
+            s = 0.35 + 0.65 * ease_back(rel / 0.14)
+            th = th_up + (th_back - th_up) * ease_out(rel / 0.38)
+        elif tnow < e["t1"]:                               # slam
+            k = (rel - 0.38) / (e["t1"] - e["t0"] - 0.38)
+            th = th_back + (th_imp - th_back) * k * k
+            ghosts = [th_back + (th_imp - th_back) * max(0, k - j * 0.16) ** 2 for j in (1, 2, 3)]
+        else:
+            h = tnow - e["t1"]
+            if h < 0.25:                                   # small rebound
+                th = th_imp + (th_up - th_imp) * 0.07 * math.sin(h / 0.25 * math.pi)
+            else:                                          # lifts away and fades
+                k = (h - 0.25) / 0.3
+                th = th_imp + (th_up - th_imp) * 0.35 * ease_out(k)
+                a = int(255 * (1 - k))
+        lay = Image.new("RGBA", (W * 2, H * 2), (0, 0, 0, 0))
+        d = ImageDraw.Draw(lay)
+        col = TEAMS[e["team"]][1]
+        for j, g in enumerate(ghosts):
+            _hammer_shape(d, P, g, s, col, int(110 / (j + 1)), ghost=True)
+        _hammer_shape(d, P, th, s, col, a)
+        img.alpha_composite(lay.resize((W, H), Image.LANCZOS))
 
 def header(img):
     if not TEAM_FLAGS:
@@ -643,6 +852,35 @@ def env_at(env, t):
     i = int(t * FPS)
     return float(env[i]) if 0 <= i < len(env) else 0.0
 
+import dialects
+DIALECT = [None if EN else dialects.lines(TEAMS[t][0]) for t in range(NT)]
+INK = (25, 20, 40)
+
+def bubble(img, cx, cy, s, tail_to, age, max_w=430, size=46):
+    """Speech bubble with s inside, its tail pointing at tail_to; pops in over 0.22 s."""
+    if age < 0 or not s:
+        return
+    k = max(0.0, ease_back(age / 0.22))
+    if k < 0.05:
+        return
+    d = ImageDraw.Draw(img)
+    fsz = size
+    while fsz > 28 and d.textlength(s, font=F(fsz), direction="rtl", language="fa") > max_w:
+        fsz -= 2
+    tw = d.textlength(s, font=F(fsz), direction="rtl", language="fa")
+    bw, bh = (tw + 60) * k, (fsz + 46) * k
+    x0, y0, x1, y1 = cx - bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2
+    bx = min(max(tail_to[0], x0 + 46 * k), x1 - 46 * k)
+    tip = (bx + (tail_to[0] - bx) * 0.45, y1 + 52 * k)
+    tail = [(bx - 22 * k, y1 - 6), (bx + 22 * k, y1 - 6), tip]
+    lay, ld = layer()
+    ld.rounded_rectangle([x0 - 5, y0 - 5, x1 + 5, y1 + 5], int(30 * k) + 5, fill=INK + (255,))
+    ld.line(tail + [tail[0]], fill=INK + (255,), width=10, joint="curve")
+    ld.polygon(tail, fill=(255, 255, 255, 255))
+    ld.rounded_rectangle([x0, y0, x1, y1], int(30 * k), fill=(255, 255, 255, 255))
+    img.alpha_composite(lay)
+    text(img, (cx, cy + 2 * k), s, max(24, int(fsz * k)), INK + (255,), max_w=max_w)
+
 STAGE_Y = AY + 390
 def draw_intro(v):
     img = BG.copy()
@@ -664,6 +902,8 @@ def draw_intro(v):
         put(img, glow(t, 150), x, y)
         put(img, MS.mascot(BODY[t], TEAMS[t][1], 140, "angry", arms, mouth, k), x, y)
         text(img, (x, AY + 660), TEAMS[t][0], 62, shade(TEAMS[t][1], 1.45) + (255,), max_w=440, stroke=4)
+        if DIALECT[t]:                     # the city's own catchphrase as it shouts
+            bubble(img, x, STAGE_Y - 300, DIALECT[t][0], (x + (60 if x < W / 2 else -60), STAGE_Y - 150), v - SHOUT_ENV[t][0], max_w=400)
     if v >= 2.25:
         k = (v - 2.25) / 0.15
         size = int(170 * (1 + 2.0 * (1 - ease_out(k))))
@@ -692,13 +932,19 @@ CCOL = [shade(TEAMS[WIN][1], prng.uniform(0.9, 1.5)) for _ in range(NP)]
 sim_frames = len(frames_grid)
 final_frame = None
 PREVIEW_AT = sorted({int(1.0 * FPS)} | {int((p["t0"] + 0.35) * FPS) for p in powers}
-                    | {int((e["t1"] - 0.15) * FPS) for e in effects if e["type"] == "rpg"}
+                    | {int((e["t1"] - 0.15) * FPS) for e in effects if e["type"] in ("rpg", "hammer")}
+                    | {int((e["t0"] + 0.25) * FPS) for e in effects if e["type"] == "hammer"}
+                    | {int((e["t1"] + 0.1) * FPS) for e in effects if e["type"] in ("hammer", "shield")}
+                    | {int((e["t0"] + 0.03) * FPS) for e in effects if e["type"] == "bolt"}
                     | {int((BATTLE + 0.6) * FPS), int((SIM_END + 1.4) * FPS)})
 INTRO_F = int(round(INTRO * FPS))
 PREVIEW_V = ({INTRO_F + f for f in PREVIEW_AT} | {int(0.8 * FPS), int(1.9 * FPS), int(2.45 * FPS),
              INTRO_F + int((KO_T + 0.2) * FPS), INTRO_F + int((SIM_END + 2.0) * FPS)})
 LOSER = int(np.argsort(LEAD_SHARE)[-2])
+FAST = os.environ.get("PREVIEW") == "fast"     # draw only the preview frames
 for fv in range(N):
+    if FAST and fv not in PREVIEW_V:
+        continue
     if fv < INTRO_F:
         img = draw_intro(fv / FPS)
         ImageDraw.Draw(img).text((W / 2, H - 110), "BARKHORD" if EN else "@barkhord.tv", font=F(36, False), fill=(255, 255, 255, 110), anchor="mm")
@@ -722,9 +968,17 @@ for fv in range(N):
         img.paste(arena.crop(box), (box[0] + dx, box[1] + dy))
         share = frames_share[k]
         draw_bar(img, share, hl=int(np.argmax(share)))
+        draw_storm(img, tnow, dx, dy)                  # dark sky, rain, bolts and flashes under the banners
         for p in powers:
             if p["t0"] <= tnow < p["t0"] + 1.5:
-                banner(img, POWER_NAME[p["kind"]] + "!", (possessive(TEAMS[p['team']][0]) + " special power" if EN else f"قدرت ویژه‌ی {TEAMS[p['team']][0]}"), TEAMS[p["team"]][1], tnow - p["t0"])
+                nm = TEAMS[p["team"]][0]
+                if p["kind"] == "shield":   # the defence banner sits low so both banners can be read
+                    banner(img, POWER_NAME["shield"] + "!", (f"{nm} defends" if EN else f"دفاع {nm}"), TEAMS[p["team"]][1],
+                           tnow - p["t0"], life=1.3, cy=p["cy"])
+                else:
+                    banner(img, POWER_NAME[p["kind"]] + "!", (possessive(nm) + " special power" if EN else f"قدرت ویژه‌ی {nm}"), TEAMS[p["team"]][1],
+                           tnow - p["t0"], cy=p.get("cy") or BANNER_TOP)
+        draw_hammer(img, tnow, dx, dy)                 # over the banners: the swing is the show
         if INTRO:
             big_word(img, "FIGHT!" if EN else "شروع!", tnow, (255, 230, 80), 0.7)
         big_word(img, "K.O.!", tnow - KO_T, (255, 70, 70), SIM_END - KO_T + 0.05)
@@ -744,7 +998,8 @@ for fv in range(N):
                 label = (f"{left} SECOND{'S' if left != 1 else ''} LEFT!") if urgent else f"0:{left:02d}"
             else:
                 label = f"{fa(left)} ثانیه‌ی آخر!" if urgent else f"۰:{fa(left).rjust(2, '۰')}"
-            text(img, (W / 2, AY + AS + 90), label, tsize, tc)
+            if not any(p.get("cy", 0) > AY + AS and p["t0"] <= tnow < p["t0"] + 1.3 for p in powers):
+                text(img, (W / 2, AY + AS + 90), label, tsize, tc)     # (a shield banner may sit here)
         else:
             if tnow < BATTLE + 0.15:
                 img.alpha_composite(Image.new("RGBA", (W, H), (255, 255, 255, int(200 * (1 - (tnow - BATTLE) / 0.15)))))
@@ -785,6 +1040,8 @@ for fv in range(N):
         if bt >= 0.3:
             ly = AY + AS - 120 + 200 * (1 - ease_out((bt - 0.3) / 0.3))
             put(img, MS.mascot(BODY[LOSER], TEAMS[LOSER][1], 80, "sad", 0.0, 0.0, bt), AX + 130 + math.sin(bt * 30) * 2, ly)
+        if DIALECT[WIN]:                   # the winner's taunt in its own dialect
+            bubble(img, W - 80 - 215, AY + 20, DIALECT[WIN][1], (wx + 110, wy - 120), bt - 0.75, max_w=400)
         if bt >= 0.35:
             text(img, (W / 2, AY + 680), TEAMS[WIN][0], 92, (255, 255, 255, 255), max_w=760, stroke=6)
             text(img, (W / 2, AY + 765), CARD_SUB, 44, shade(TEAMS[WIN][1], 1.5) + (255,), bold=False, max_w=760, stroke=3)

@@ -261,3 +261,49 @@ if __name__ == "__main__":
     with wave.open(sys.argv[2], "wb") as wf:
         wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(SR)
         wf.writeframes((_norm(x, 0.9) * 32767).astype(np.int16).tobytes())
+
+
+def clang(seed=16):
+    """Giant hammer hit: heavy thud plus a ringing metal clang."""
+    rng = np.random.default_rng(seed)
+    t = _t(1.6)
+    thud = np.sin(2 * np.pi * (70 * t - 18 * t ** 2)) * np.exp(-t * 5)
+    ring = np.zeros(len(t))
+    for f, g, dec in ((523, 1.0, 4.5), (1187, 0.6, 6), (1871, 0.45, 8), (2793, 0.3, 11), (3540, 0.2, 14)):
+        ring += g * np.sin(2 * np.pi * f * rng.uniform(0.98, 1.02) * t) * np.exp(-t * dec)
+    hit = _highpass(rng.normal(0, 1, len(t)), 1500) * np.exp(-t * 45)
+    return _norm(_norm(thud) * 1.1 + _norm(ring) * 0.55 + _norm(hit) * 0.5)
+
+
+def shield_up(sec=0.45):
+    """Energy shield powering up: a fast rising shimmer."""
+    t = _t(sec)
+    f = 300 + 900 * (t / sec) ** 0.7
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    tone = np.sin(ph) + 0.5 * np.sin(2.01 * ph) + 0.3 * np.sin(3.02 * ph)
+    trem = 0.7 + 0.3 * np.sin(2 * np.pi * 28 * t)
+    env = np.minimum(t / 0.03, 1) * np.minimum((sec - t) / 0.08, 1)
+    return _norm(tone * trem * env)
+
+
+def rain(sec=2.0, seed=17):
+    """Steady rain: band-passed hiss with soft random drops, fading in and out."""
+    rng = np.random.default_rng(seed)
+    t = _t(sec)
+    hiss = _bandpass(rng.normal(0, 1, len(t)), 1200, 7000)
+    drops = np.zeros(len(t))
+    for _ in range(int(sec * 60)):
+        s0 = rng.integers(0, max(1, len(t) - 800))
+        L = 600
+        drops[s0:s0 + L] += np.sin(2 * np.pi * rng.uniform(2000, 4500) * np.arange(L) / SR) * np.exp(-np.arange(L) / SR * 220) * rng.uniform(0.2, 0.6)
+    env = np.minimum(t / 0.25, 1) * np.minimum((sec - t) / 0.4, 1)
+    return _norm((_norm(hiss) * 0.7 + _norm(drops) * 0.4) * env)
+
+
+def thunderclap(sec=2.2, seed=18):
+    """Close lightning strike: a crack, a boom and a long rolling rumble."""
+    t = _t(sec)
+    crack = _highpass(_noise(sec, seed), 2500) * np.exp(-t * 35)
+    boom_ = np.sin(2 * np.pi * (60 * t - 12 * t ** 2)) * np.exp(-t * 4)
+    roll = _lowpass(_noise(sec, seed + 1), 140) * (0.6 + 0.4 * np.sin(2 * np.pi * 3.3 * t)) * np.exp(-t * 1.4) * np.minimum(t / 0.08, 1)
+    return _norm(_norm(crack) * 0.9 + _norm(boom_) * 0.8 + _norm(roll) * 1.0)

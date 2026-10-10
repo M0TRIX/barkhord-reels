@@ -70,6 +70,19 @@ def cities(rng, names, winner):
     return caption, first
 
 
+def request(rng, names, winner):
+    """A match a viewer asked for in the comments."""
+    a, b = names
+    first_line = rng.choice([
+        f"به درخواست شما 😅\n{a} یا {b}؟",
+        f"خواسته بودین، ساختیمش 😁\n{a} یا {b}؟",
+    ])
+    caption = (f"{first_line}\n\nبازی بعدی رو تو کامنت بگو، می‌سازیمش 👇\n\n"
+               f"#نبرد_شهرها {tag(a)} {tag(b)}")
+    first = f"{winner} برد 🏆\nبازی بعدی چی باشه؟ 👇"
+    return caption, first
+
+
 def colors(rng, names, winner):
     first_line = rng.choice([
         "قبل از اینکه ببینی یه رنگ انتخاب کن 👀",
@@ -129,6 +142,9 @@ def youtube(fmt, names, round_name=None):
     elif fmt == "derby":
         title = "پرسپولیس یا استقلال؟ 🔴🔵 دربی توپ‌ها #shorts"
         tags = ["پرسپولیس", "استقلال", "دربی"]
+    elif fmt == "request":
+        title = f"{names[0]} یا {names[1]}؟ 🔥 به درخواست شما | نبرد شهرها #shorts"
+        tags = ["نبرد شهرها", "جام شهرها", "بازی درخواستی"] + names
     elif fmt == "cities":
         title = f"{or_fa(names)}؟ 🏙️ نبرد شهرها #shorts"
         tags = ["نبرد شهرها"] + names
