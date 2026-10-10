@@ -1,0 +1,48 @@
+{
+  "seed": 1792001600,
+  "format": "cup",
+  "teams": [
+    "قم",
+    "اصفهان"
+  ],
+  "winner": "اصفهان",
+  "lead_pct_at_whistle": 55,
+  "powers": [
+    [
+      "giant",
+      "قم"
+    ],
+    [
+      "lightning",
+      "اصفهان"
+    ],
+    [
+      "giant",
+      "اصفهان"
+    ],
+    [
+      "lightning",
+      "قم"
+    ],
+    [
+      "giant",
+      "اصفهان"
+    ]
+  ],
+  "new_powers": [],
+  "duration": 24.7,
+  "instagram_caption": "قم یا اصفهان؟ 🔥\nجام شهرها، فینال\n\nطرفدار کدومی؟ کامنت کن 👇\n\n#جام_شهرها #قم #اصفهان #ایران",
+  "first_comment": "🏆 اصفهان قهرمان شد!\nفصل بعد کدوم شهرها باشن؟ کامنت کنید 👇",
+  "youtube_title": "قم یا اصفهان؟ 🔥 جام شهرها | فینال #shorts",
+  "youtube_tags": [
+    "جام شهرها",
+    "قم",
+    "اصفهان",
+    "ایران",
+    "شبیه سازی",
+    "simulation",
+    "satisfying",
+    "shorts"
+  ],
+  "cover_ms": 9037
+}
