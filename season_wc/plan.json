@@ -1,0 +1,682 @@
+{
+  "series": "worldcup",
+  "season": 1,
+  "items": [
+    {
+      "n": 1,
+      "date": "2026-11-03",
+      "date_fa": "۱۲ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 0,
+      "teams": [
+        "Netherlands",
+        "Portugal"
+      ],
+      "winner": "Portugal",
+      "ko_t": 15.0,
+      "lead_changes": 5,
+      "seed": 1792000105,
+      "label": "Round of 32 · Match 1/16",
+      "state": "season_wc/state_000.json",
+      "video": "season_wc/01_0_0.mp4"
+    },
+    {
+      "n": 2,
+      "date": "2026-11-04",
+      "date_fa": "۱۳ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 1,
+      "teams": [
+        "Mexico",
+        "Philippines"
+      ],
+      "winner": "Mexico",
+      "ko_t": 17.2,
+      "lead_changes": 4,
+      "seed": 1792000205,
+      "label": "Round of 32 · Match 2/16",
+      "state": "season_wc/state_001.json",
+      "video": "season_wc/02_0_1.mp4"
+    },
+    {
+      "n": 3,
+      "date": "2026-11-05",
+      "date_fa": "۱۴ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 2,
+      "teams": [
+        "Iran",
+        "France"
+      ],
+      "winner": "France",
+      "ko_t": 16.5,
+      "lead_changes": 6,
+      "seed": 1792000303,
+      "label": "Round of 32 · Match 3/16",
+      "state": "season_wc/state_002.json",
+      "video": "season_wc/03_0_2.mp4"
+    },
+    {
+      "n": 4,
+      "date": "2026-11-06",
+      "date_fa": "۱۵ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 3,
+      "teams": [
+        "England",
+        "Australia"
+      ],
+      "winner": "Australia",
+      "ko_t": 17.0,
+      "lead_changes": 4,
+      "seed": 1792000400,
+      "label": "Round of 32 · Match 4/16",
+      "state": "season_wc/state_003.json",
+      "video": "season_wc/04_0_3.mp4"
+    },
+    {
+      "n": 5,
+      "date": "2026-11-07",
+      "date_fa": "۱۶ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 4,
+      "teams": [
+        "Vietnam",
+        "Pakistan"
+      ],
+      "winner": "Vietnam",
+      "ko_t": 17.0,
+      "lead_changes": 5,
+      "seed": 1792000503,
+      "label": "Round of 32 · Match 5/16",
+      "state": "season_wc/state_004.json",
+      "video": "season_wc/05_0_4.mp4"
+    },
+    {
+      "n": 6,
+      "date": "2026-11-08",
+      "date_fa": "۱۷ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 5,
+      "teams": [
+        "USA",
+        "Spain"
+      ],
+      "winner": "Spain",
+      "ko_t": 17.1,
+      "lead_changes": 4,
+      "seed": 1792000603,
+      "label": "Round of 32 · Match 6/16",
+      "state": "season_wc/state_005.json",
+      "video": "season_wc/06_0_5.mp4"
+    },
+    {
+      "n": 7,
+      "date": "2026-11-09",
+      "date_fa": "۱۸ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 6,
+      "teams": [
+        "Nigeria",
+        "Argentina"
+      ],
+      "winner": "Argentina",
+      "ko_t": 16.2,
+      "lead_changes": 5,
+      "seed": 1792000703,
+      "label": "Round of 32 · Match 7/16",
+      "state": "season_wc/state_006.json",
+      "video": "season_wc/07_0_6.mp4"
+    },
+    {
+      "n": 8,
+      "date": "2026-11-10",
+      "date_fa": "۱۹ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 7,
+      "teams": [
+        "Belgium",
+        "Brazil"
+      ],
+      "winner": "Brazil",
+      "ko_t": 16.4,
+      "lead_changes": 4,
+      "seed": 1792000803,
+      "label": "Round of 32 · Match 8/16",
+      "state": "season_wc/state_007.json",
+      "video": "season_wc/08_0_7.mp4"
+    },
+    {
+      "n": 9,
+      "date": "2026-11-11",
+      "date_fa": "۲۰ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 8,
+      "teams": [
+        "Colombia",
+        "Japan"
+      ],
+      "winner": "Japan",
+      "ko_t": 18.6,
+      "lead_changes": 6,
+      "seed": 1792000901,
+      "label": "Round of 32 · Match 9/16",
+      "state": "season_wc/state_008.json",
+      "video": "season_wc/09_0_8.mp4"
+    },
+    {
+      "n": 10,
+      "date": "2026-11-12",
+      "date_fa": "۲۱ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 9,
+      "teams": [
+        "South Korea",
+        "Saudi Arabia"
+      ],
+      "winner": "Saudi Arabia",
+      "ko_t": 16.9,
+      "lead_changes": 4,
+      "seed": 1792001001,
+      "label": "Round of 32 · Match 10/16",
+      "state": "season_wc/state_009.json",
+      "video": "season_wc/10_0_9.mp4"
+    },
+    {
+      "n": 11,
+      "date": "2026-11-13",
+      "date_fa": "۲۲ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 10,
+      "teams": [
+        "Turkey",
+        "Canada"
+      ],
+      "winner": "Turkey",
+      "ko_t": 17.6,
+      "lead_changes": 4,
+      "seed": 1792001100,
+      "label": "Round of 32 · Match 11/16",
+      "state": "season_wc/state_010.json",
+      "video": "season_wc/11_0_10.mp4"
+    },
+    {
+      "n": 12,
+      "date": "2026-11-14",
+      "date_fa": "۲۳ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 11,
+      "teams": [
+        "Indonesia",
+        "Poland"
+      ],
+      "winner": "Indonesia",
+      "ko_t": 16.6,
+      "lead_changes": 5,
+      "seed": 1792001201,
+      "label": "Round of 32 · Match 12/16",
+      "state": "season_wc/state_011.json",
+      "video": "season_wc/12_0_11.mp4"
+    },
+    {
+      "n": 13,
+      "date": "2026-11-15",
+      "date_fa": "۲۴ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 12,
+      "teams": [
+        "Egypt",
+        "Greece"
+      ],
+      "winner": "Egypt",
+      "ko_t": 18.3,
+      "lead_changes": 5,
+      "seed": 1792001305,
+      "label": "Round of 32 · Match 13/16",
+      "state": "season_wc/state_012.json",
+      "video": "season_wc/13_0_12.mp4"
+    },
+    {
+      "n": 14,
+      "date": "2026-11-16",
+      "date_fa": "۲۵ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 13,
+      "teams": [
+        "Germany",
+        "Morocco"
+      ],
+      "winner": "Germany",
+      "ko_t": 17.2,
+      "lead_changes": 3,
+      "seed": 1792001404,
+      "label": "Round of 32 · Match 14/16",
+      "state": "season_wc/state_013.json",
+      "video": "season_wc/14_0_13.mp4"
+    },
+    {
+      "n": 15,
+      "date": "2026-11-17",
+      "date_fa": "۲۶ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 14,
+      "teams": [
+        "Bangladesh",
+        "India"
+      ],
+      "winner": "Bangladesh",
+      "ko_t": 16.8,
+      "lead_changes": 4,
+      "seed": 1792001504,
+      "label": "Round of 32 · Match 15/16",
+      "state": "season_wc/state_014.json",
+      "video": "season_wc/15_0_14.mp4"
+    },
+    {
+      "n": 16,
+      "date": "2026-11-18",
+      "date_fa": "۲۷ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 0,
+      "match": 15,
+      "teams": [
+        "Croatia",
+        "Italy"
+      ],
+      "winner": "Italy",
+      "ko_t": 16.3,
+      "lead_changes": 6,
+      "seed": 1792001602,
+      "label": "Round of 32 · Match 16/16",
+      "state": "season_wc/state_015.json",
+      "video": "season_wc/16_0_15.mp4"
+    },
+    {
+      "n": 17,
+      "date": "2026-11-19",
+      "date_fa": "۲۸ آبان",
+      "time": "16:00",
+      "kind": "recap",
+      "round": 0,
+      "label": "Round of 32",
+      "state": "season_wc/state_016.json",
+      "video": "season_wc/17_recap_0.mp4"
+    },
+    {
+      "n": 18,
+      "date": "2026-11-20",
+      "date_fa": "۲۹ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 1,
+      "match": 0,
+      "teams": [
+        "Portugal",
+        "Mexico"
+      ],
+      "winner": "Mexico",
+      "ko_t": 16.5,
+      "lead_changes": 4,
+      "seed": 1792001805,
+      "label": "Round of 16 · Match 1/8",
+      "state": "season_wc/state_017.json",
+      "video": "season_wc/18_1_0.mp4"
+    },
+    {
+      "n": 19,
+      "date": "2026-11-21",
+      "date_fa": "۳۰ آبان",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 1,
+      "match": 1,
+      "teams": [
+        "France",
+        "Australia"
+      ],
+      "winner": "Australia",
+      "ko_t": 16.3,
+      "lead_changes": 5,
+      "seed": 1792001903,
+      "label": "Round of 16 · Match 2/8",
+      "state": "season_wc/state_018.json",
+      "video": "season_wc/19_1_1.mp4"
+    },
+    {
+      "n": 20,
+      "date": "2026-11-22",
+      "date_fa": "۱ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 1,
+      "match": 2,
+      "teams": [
+        "Vietnam",
+        "Spain"
+      ],
+      "winner": "Spain",
+      "ko_t": 17.0,
+      "lead_changes": 4,
+      "seed": 1792002003,
+      "label": "Round of 16 · Match 3/8",
+      "state": "season_wc/state_019.json",
+      "video": "season_wc/20_1_2.mp4"
+    },
+    {
+      "n": 21,
+      "date": "2026-11-23",
+      "date_fa": "۲ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 1,
+      "match": 3,
+      "teams": [
+        "Argentina",
+        "Brazil"
+      ],
+      "winner": "Brazil",
+      "ko_t": 18.4,
+      "lead_changes": 5,
+      "seed": 1792002100,
+      "label": "Round of 16 · Match 4/8",
+      "state": "season_wc/state_020.json",
+      "video": "season_wc/21_1_3.mp4"
+    },
+    {
+      "n": 22,
+      "date": "2026-11-24",
+      "date_fa": "۳ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 1,
+      "match": 4,
+      "teams": [
+        "Japan",
+        "Saudi Arabia"
+      ],
+      "winner": "Saudi Arabia",
+      "ko_t": 16.3,
+      "lead_changes": 4,
+      "seed": 1792002203,
+      "label": "Round of 16 · Match 5/8",
+      "state": "season_wc/state_021.json",
+      "video": "season_wc/22_1_4.mp4"
+    },
+    {
+      "n": 23,
+      "date": "2026-11-25",
+      "date_fa": "۴ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 1,
+      "match": 5,
+      "teams": [
+        "Turkey",
+        "Indonesia"
+      ],
+      "winner": "Turkey",
+      "ko_t": 17.7,
+      "lead_changes": 4,
+      "seed": 1792002303,
+      "label": "Round of 16 · Match 6/8",
+      "state": "season_wc/state_022.json",
+      "video": "season_wc/23_1_5.mp4"
+    },
+    {
+      "n": 24,
+      "date": "2026-11-26",
+      "date_fa": "۵ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 1,
+      "match": 6,
+      "teams": [
+        "Egypt",
+        "Germany"
+      ],
+      "winner": "Egypt",
+      "ko_t": 17.5,
+      "lead_changes": 5,
+      "seed": 1792002401,
+      "label": "Round of 16 · Match 7/8",
+      "state": "season_wc/state_023.json",
+      "video": "season_wc/24_1_6.mp4"
+    },
+    {
+      "n": 25,
+      "date": "2026-11-27",
+      "date_fa": "۶ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 1,
+      "match": 7,
+      "teams": [
+        "Bangladesh",
+        "Italy"
+      ],
+      "winner": "Bangladesh",
+      "ko_t": 16.5,
+      "lead_changes": 3,
+      "seed": 1792002505,
+      "label": "Round of 16 · Match 8/8",
+      "state": "season_wc/state_024.json",
+      "video": "season_wc/25_1_7.mp4"
+    },
+    {
+      "n": 26,
+      "date": "2026-11-28",
+      "date_fa": "۷ آذر",
+      "time": "16:00",
+      "kind": "recap",
+      "round": 1,
+      "label": "Round of 16",
+      "state": "season_wc/state_025.json",
+      "video": "season_wc/26_recap_1.mp4"
+    },
+    {
+      "n": 27,
+      "date": "2026-11-29",
+      "date_fa": "۸ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 2,
+      "match": 0,
+      "teams": [
+        "Mexico",
+        "Australia"
+      ],
+      "winner": "Australia",
+      "ko_t": 17.7,
+      "lead_changes": 6,
+      "seed": 1792002700,
+      "label": "Quarter-finals · Match 1/4",
+      "state": "season_wc/state_026.json",
+      "video": "season_wc/27_2_0.mp4"
+    },
+    {
+      "n": 28,
+      "date": "2026-11-30",
+      "date_fa": "۹ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 2,
+      "match": 1,
+      "teams": [
+        "Spain",
+        "Brazil"
+      ],
+      "winner": "Spain",
+      "ko_t": 16.8,
+      "lead_changes": 4,
+      "seed": 1792002801,
+      "label": "Quarter-finals · Match 2/4",
+      "state": "season_wc/state_027.json",
+      "video": "season_wc/28_2_1.mp4"
+    },
+    {
+      "n": 29,
+      "date": "2026-12-01",
+      "date_fa": "۱۰ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 2,
+      "match": 2,
+      "teams": [
+        "Saudi Arabia",
+        "Turkey"
+      ],
+      "winner": "Turkey",
+      "ko_t": 17.2,
+      "lead_changes": 4,
+      "seed": 1792002900,
+      "label": "Quarter-finals · Match 3/4",
+      "state": "season_wc/state_028.json",
+      "video": "season_wc/29_2_2.mp4"
+    },
+    {
+      "n": 30,
+      "date": "2026-12-02",
+      "date_fa": "۱۱ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 2,
+      "match": 3,
+      "teams": [
+        "Egypt",
+        "Bangladesh"
+      ],
+      "winner": "Egypt",
+      "ko_t": 16.1,
+      "lead_changes": 4,
+      "seed": 1792003001,
+      "label": "Quarter-finals · Match 4/4",
+      "state": "season_wc/state_029.json",
+      "video": "season_wc/30_2_3.mp4"
+    },
+    {
+      "n": 31,
+      "date": "2026-12-03",
+      "date_fa": "۱۲ آذر",
+      "time": "16:00",
+      "kind": "recap",
+      "round": 2,
+      "label": "Quarter-finals",
+      "state": "season_wc/state_030.json",
+      "video": "season_wc/31_recap_2.mp4"
+    },
+    {
+      "n": 32,
+      "date": "2026-12-04",
+      "date_fa": "۱۳ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 3,
+      "match": 0,
+      "teams": [
+        "Australia",
+        "Spain"
+      ],
+      "winner": "Australia",
+      "ko_t": 17.3,
+      "lead_changes": 5,
+      "seed": 1792003200,
+      "label": "Semi-finals · Match 1/2",
+      "state": "season_wc/state_031.json",
+      "video": "season_wc/32_3_0.mp4"
+    },
+    {
+      "n": 33,
+      "date": "2026-12-05",
+      "date_fa": "۱۴ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 3,
+      "match": 1,
+      "teams": [
+        "Turkey",
+        "Egypt"
+      ],
+      "winner": "Turkey",
+      "ko_t": 17.6,
+      "lead_changes": 4,
+      "seed": 1792003302,
+      "label": "Semi-finals · Match 2/2",
+      "state": "season_wc/state_032.json",
+      "video": "season_wc/33_3_1.mp4"
+    },
+    {
+      "n": 34,
+      "date": "2026-12-06",
+      "date_fa": "۱۵ آذر",
+      "time": "16:00",
+      "kind": "recap",
+      "round": 3,
+      "label": "Semi-finals",
+      "state": "season_wc/state_033.json",
+      "video": "season_wc/34_recap_3.mp4"
+    },
+    {
+      "n": 35,
+      "date": "2026-12-07",
+      "date_fa": "۱۶ آذر",
+      "time": "16:00",
+      "kind": "cup",
+      "round": 4,
+      "match": 0,
+      "teams": [
+        "Australia",
+        "Turkey"
+      ],
+      "winner": "Turkey",
+      "ko_t": 17.8,
+      "lead_changes": 5,
+      "seed": 1792003503,
+      "label": "Final",
+      "state": "season_wc/state_034.json",
+      "video": "season_wc/35_4_0.mp4"
+    },
+    {
+      "n": 36,
+      "date": "2026-12-08",
+      "date_fa": "۱۷ آذر",
+      "time": "16:00",
+      "kind": "recap",
+      "round": 4,
+      "label": "Final",
+      "state": "season_wc/state_035.json",
+      "video": "season_wc/36_recap_4.mp4"
+    }
+  ],
+  "final_state": "season_wc/state_036.json"
+}
