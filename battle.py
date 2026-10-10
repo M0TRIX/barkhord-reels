@@ -6,7 +6,7 @@ captures any enemy cell it touches (then bounces). A live bar shows each team's
 share; when the clock runs out the biggest share wins. Writes OUT.json with the
 caption, first comment and cover frame like reel_generator.py.
 """
-import math, colorsys, wave, subprocess, sys, os, json, random, glob, shutil, tempfile
+import math, colorsys, wave, subprocess, sys, os, json, random, glob, shutil, tempfile, datetime
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
@@ -61,7 +61,8 @@ elif FORMAT == "cities":
     CTA_END = "شهر تو نبود؟ کامنت کن"
 elif FORMAT == "request":     # a viewer's requested match: MATCH="نهاوند,تبریز"
     names = [s.strip() for s in os.environ["MATCH"].split(",")][:2]
-    cols = rng.sample(CITY_COLORS, 2)
+    cols = rng.choice([("#E63946", "#2A9DF4"), ("#FF7A1A", "#7C4DFF"), ("#F4B400", "#1F63C6"),
+                       ("#2DC653", "#FF4FA3"), ("#14B8A6", "#FF7A1A"), ("#A855F7", "#F4B400")])   # always two clearly different colours
     TEAMS = [(names[i], hexc(cols[i])) for i in range(2)]
     HOOK, SUB = f"{names[0]} یا {names[1]}؟", "بازی درخواستی شما"
     CTA_END = "بازی بعدی رو کامنت کن"
@@ -152,18 +153,20 @@ if EN:
 FRENZY = 5.0                         # the last seconds: faster balls, more powers
 POWER_TIMES = [rng.uniform(2.0, 2.6), rng.uniform(5.8, 6.6), rng.uniform(8.4, 9.0),
                BATTLE - rng.uniform(4.3, 4.0), BATTLE - rng.uniform(2.3, 2.0)]
-ATTACKS = ("rpg", "lightning", "giant", "hammer")
-POWER_KINDS = rng.sample(["giant", "rpg", "lightning", "clone", "hammer"], 3)
-if "hammer" not in POWER_KINDS:     # the hammer is in every video
-    POWER_KINDS[rng.choice([1, 2])] = "hammer"
-POWER_KINDS += [rng.choice([k for k in ATTACKS if k != POWER_KINDS[-1] and k != "hammer"])]
-POWER_KINDS += [rng.choice([k for k in ATTACKS if k != POWER_KINDS[-1]])]
-# defence: one mid-match RPG or hammer hits a shield the other side raises just in time
-_cands = [i for i in (1, 2, 3) if POWER_KINDS[i] == "rpg"] or [i for i in (1, 2, 3) if POWER_KINDS[i] == "hammer"]
-if not _cands:
-    POWER_KINDS[3] = "rpg" if POWER_KINDS[2] != "rpg" and POWER_KINDS[4] != "rpg" else "hammer"
-    _cands = [3]
-BLOCK_IDX = _cands[0]
+import powers as PW
+TODAY = datetime.date.fromisoformat(os.environ["TODAY"]) if os.environ.get("TODAY") else PW.today_tehran()
+POWER_KINDS, SHIELD_ON = PW.pick(rng, TODAY)        # a few powers per video, new ones first (powers.py)
+NEW_POWERS = {k for k in POWER_KINDS if PW.is_new(k, TODAY)}
+# defence: a mid-match RPG or hammer hits a shield the other side raises just in time
+BLOCK_IDX = None
+if SHIELD_ON:
+    _cands = [i for i in (1, 2, 3, 4) if POWER_KINDS[i] == "rpg"] or [i for i in (1, 2, 3, 4) if POWER_KINDS[i] == "hammer"]
+    if not _cands and PW.is_new("shield", TODAY):
+        POWER_KINDS[3] = "hammer" if "hammer" in PW.ACTIVE else "rpg"
+        _cands = [3]
+    BLOCK_IDX = _cands[0] if _cands else None
+if BLOCK_IDX is not None and PW.is_new("shield", TODAY):
+    NEW_POWERS.add("shield")
 HAMMER_L, HAMMER_HL, HAMMER_HT = 330, 220, 135     # handle length, head length and thickness (px)
 powers, pending, effects, shakes, captures = [], [], [], [], []
 
@@ -973,11 +976,14 @@ for fv in range(N):
             if p["t0"] <= tnow < p["t0"] + 1.5:
                 nm = TEAMS[p["team"]][0]
                 if p["kind"] == "shield":   # the defence banner sits low so both banners can be read
-                    banner(img, POWER_NAME["shield"] + "!", (f"{nm} defends" if EN else f"دفاع {nm}"), TEAMS[p["team"]][1],
-                           tnow - p["t0"], life=1.3, cy=p["cy"])
+                    sub = (f"NEW · {nm} defends" if EN else f"جدید · دفاع {nm}") if "shield" in NEW_POWERS else (f"{nm} defends" if EN else f"دفاع {nm}")
+                    banner(img, POWER_NAME["shield"] + "!", sub, TEAMS[p["team"]][1], tnow - p["t0"], life=1.3, cy=p["cy"])
                 else:
-                    banner(img, POWER_NAME[p["kind"]] + "!", (possessive(nm) + " special power" if EN else f"قدرت ویژه‌ی {nm}"), TEAMS[p["team"]][1],
-                           tnow - p["t0"], cy=p.get("cy") or BANNER_TOP)
+                    if p["kind"] in NEW_POWERS:
+                        sub = f"NEW POWER · {nm}" if EN else f"قدرت جدید · {nm}"
+                    else:
+                        sub = possessive(nm) + " special power" if EN else f"قدرت ویژه‌ی {nm}"
+                    banner(img, POWER_NAME[p["kind"]] + "!", sub, TEAMS[p["team"]][1], tnow - p["t0"], cy=p.get("cy") or BANNER_TOP)
         draw_hammer(img, tnow, dx, dy)                 # over the banners: the swing is the show
         if INTRO:
             big_word(img, "FIGHT!" if EN else "شروع!", tnow, (255, 230, 80), 0.7)
@@ -1069,12 +1075,17 @@ elif FORMAT == "worldcup":
     wc.save(WC_STATE)
 else:
     caption, first = getattr(captions, FORMAT)(rng, names, TEAMS[WIN][0])
+shown_new = [k for k in dict.fromkeys(p["kind"] for p in powers) if k in NEW_POWERS]
+if shown_new:
+    line = ("🆕 New power: " if EN else "🆕 قدرت جدید: ") + "، ".join(POWER_NAME[k] for k in shown_new).replace("، ", ", " if EN else "، ")
+    head, sep, tags = caption.rpartition("\n\n")
+    caption = f"{head}\n\n{line}{sep}{tags}" if sep else f"{caption}\n\n{line}"
 if FORMAT == "worldcup":
     yt_title, yt_tags = captions.youtube_worldcup(rng, names, wc.ROUND_NAMES[WC_R])
 else:
     yt_title, yt_tags = captions.youtube(FORMAT, names, cup.ROUND_NAMES[CUP_R] if FORMAT == "cup" else None)
 meta = {"seed": SEED, "format": FORMAT, "teams": names, "winner": TEAMS[WIN][0], "lead_pct_at_whistle": WIN_PCT,
-        "powers": [[p["kind"], TEAMS[p["team"]][0]] for p in powers], "duration": round(DUR, 2),
+        "powers": [[p["kind"], TEAMS[p["team"]][0]] for p in powers], "new_powers": sorted(NEW_POWERS), "duration": round(DUR, 2),
         "instagram_caption": caption, "first_comment": first,
         "youtube_title": yt_title, "youtube_tags": yt_tags,
         "cover_ms": int((INTRO + POWER_TIMES[1] + 0.4) * 1000)}

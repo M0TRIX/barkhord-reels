@@ -11,7 +11,7 @@ The day after a round finishes, that day's video is a **round recap** (all resul
 
 ## Every video (battle.py)
 1. **Intro (2.8 s)**: wrestling-style entrance; each team is a cartoon ball (its flag for countries) that slides in, raises its arms and shouts; "VS" slam. Persian cities listed in `dialects.py` get a speech bubble with a catchphrase in their own dialect, and the winner taunts in its dialect on the podium.
-2. **Fight (15 s)**: territory war on a grid ("pong wars"): each team's balls capture enemy cells. Live share bar, timer. The team in last place gets **special powers** (giant ball, RPG, lightning, clones, **giant hammer**, which is in every video) so the lead keeps changing. In every video one mid-match RPG or hammer is met by the other side's **shield** (a dome that shatters and lets only a third of the blast through). Last 5 s = **frenzy**: faster balls, two extra powers, red pulsing frame, heartbeat.
+2. **Fight (15 s)**: territory war on a grid ("pong wars"): each team's balls capture enemy cells. Live share bar, timer. The team in last place gets **special powers** (from the roster in `powers.py`: giant ball, RPG, thunderstorm, clones, giant hammer; only 2–3 of them per video, new ones first) so the lead keeps changing. In about half the videos (every video while it is new) one RPG or hammer is met by the other side's **shield** (a dome that shatters and lets only a third of the blast through). Last 5 s = **frenzy**: faster balls, two extra powers, red pulsing frame, heartbeat.
 3. **Finish**: whistle, the leader's shockwave wipes out the other side (100%), "K.O.!".
 4. **Podium (4.6 s)**: winner with a crown laughing (mouth synced to a synthesized deep laugh), loser crying in the corner + sad trombone, next match + follow/subscribe line.
 
@@ -23,6 +23,7 @@ All sound is synthesized in `sfx.py` (no samples, no copyright issues). Fonts: V
 | `make_reel.py` | Today's Instagram reel → `reels/reel_<seed>.mp4` + `.json`. Picks cup / derby / recap. Prints the json path last. |
 | `make_short.py` | Today's YouTube Short → `shorts/short_<seed>.mp4` + `.json` (World Cup match or recap). |
 | `battle.py OUT SEED FORMAT` | Renders one battle. FORMAT: `cup`, `worldcup`, `derby`, `cities`, `colors`, `request` (a viewer's requested match: `MATCH="نهاوند,تبریز"`). `PREVIEW=1` saves preview PNGs; `DRY=1` only simulates. |
+| `powers.py` | The power roster: which powers are active (with the date each joined), which are ideas waiting their turn. Each video uses only 2–3 different powers; a power added in the last 3 days is in every video, its banner says NEW and the caption gets a "new power" line. |
 | `dialects.py` | Each city's dialect catchphrases (intro shout, winner taunt). Friendly local pride only; the owner checks new lines. |
 | `recap.py OUT SERIES ROUND` | Round recap video (`cup` or `worldcup`). |
 | `reel_generator.py` | Older single-ball "ring" format (not in rotation). |
