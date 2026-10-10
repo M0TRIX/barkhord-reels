@@ -1,0 +1,10 @@
+{
+  "pending": [
+    {"teams": ["گرگان", "گیلان"], "added": "2026-10-10", "from": "viewer comment"}
+  ],
+  "done": [
+    {"teams": ["نهاوند", "تبریز"], "made": "2026-10-10", "file": "reels/request_nahavand_tabriz.mp4", "winner": "نهاوند"},
+    {"teams": ["زنجان", "اصفهان"], "made": "2026-10-10", "file": "reels/request_zanjan_isfahan.mp4", "winner": "زنجان"},
+    {"teams": ["خرم‌آباد", "بروجن"], "made": "2026-10-10", "file": "reels/request_khorramabad_borujen.mp4", "winner": "بروجن"}
+  ]
+}

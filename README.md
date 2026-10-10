@@ -24,6 +24,7 @@ All sound is synthesized in `sfx.py` (no samples, no copyright issues). Fonts: V
 | `make_short.py` | Today's YouTube Short → `shorts/short_<seed>.mp4` + `.json` (World Cup match or recap). |
 | `battle.py OUT SEED FORMAT` | Renders one battle. FORMAT: `cup`, `worldcup`, `derby`, `cities`, `colors`, `request` (a viewer's requested match: `MATCH="نهاوند,تبریز"`). `PREVIEW=1` saves preview PNGs; `DRY=1` only simulates. |
 | `powers.py` | The power roster: which powers are active (with the date each joined), which are ideas waiting their turn. Each video uses only 2–3 different powers; a power added in the last 3 days is in every video, its banner says NEW and the caption gets a "new power" line. |
+| `make_request.py`, `requests.json` | Queue of matches viewers asked for in comments. `python3 make_request.py add گرگان گیلان` queues one; `python3 make_request.py` renders the oldest (format `request`) and prints its json path, or `none`. The daily task makes one on Tuesdays and Fridays. |
 | `dialects.py` | Each city's dialect catchphrases (intro shout, winner taunt). Friendly local pride only; the owner checks new lines. |
 | `recap.py OUT SERIES ROUND` | Round recap video (`cup` or `worldcup`). |
 | `reel_generator.py` | Older single-ball "ring" format (not in rotation). |
@@ -60,8 +61,9 @@ Rendering a video takes about 6 minutes, so always start renders in the backgrou
 
 2. Render:
    - Every day, YouTube: `python3 make_short.py` → shorts/short_<SEED>.mp4 + shorts/short_<SEED>.json (youtube_title, youtube_tags, instagram_caption which is the English YouTube description, first_comment). It plays the next World Cup of Countries match (wcup.json) or a round recap.
+   - Tuesday and Friday only: `python3 make_request.py` → the oldest viewer-requested match from requests.json as reels/request_<SEED>.mp4 + .json (Persian, same keys as a reel), or it prints `none` when the queue is empty.
    - Instagram days only: `python3 make_reel.py` → reels/reel_<SEED>.mp4 + reels/reel_<SEED>.json (format, instagram_caption, first_comment, cover_ms, youtube_title, youtube_tags). It plays the next City Cup match (cup.json), a derby every fourth reel, or a round recap.
-   Check each mp4 exists and is over 1 MB. Then delete reels/*.mp4 and shorts/*.mp4 older than 7 days (keep all .json files, cup.json, wcup.json, posts_log.json), and `git add -A && git commit -m "Daily videos <date>" && git push origin HEAD:main`. Get the commit sha with `git rev-parse --short HEAD`.
+   Check each mp4 exists and is over 1 MB. Then delete reels/*.mp4 and shorts/*.mp4 older than 7 days (keep all .json files, cup.json, wcup.json, posts_log.json, requests.json), and `git add -A && git commit -m "Daily videos <date>" && git push origin HEAD:main`. Get the commit sha with `git rev-parse --short HEAD`.
 
 3. Instagram (Instagram days only): `python3 ledger.py count` prints how many Metricool posts were made this calendar month.
    - Below 20: call Metricool createScheduledPost with blogId "7295807", date today 22:00:00+03:30, and info JSON: autoPublish true, draft false, descendants [], hasNotReadNotes false, mediaAltText [], shortener false, smartLinkData {ids: []}, providers [{network: "instagram"}], publicationDate {dateTime: "<today>T22:00:00", timezone: "Asia/Tehran"}, media ["https://cdn.jsdelivr.net/gh/M0TRIX/barkhord-reels@<sha>/reels/reel_<SEED>.mp4"], text = the reel JSON's instagram_caption exactly, firstCommentText = its first_comment exactly, videoCoverMilliseconds = its cover_ms, instagramData {type: "REEL", showReelOnFeed: true}. If rejected only because of videoCoverMilliseconds, retry once without it. If 22:00 has passed, use 15 minutes from now. Confirm the media was copied to static.metricool.com and status is PENDING. Then `python3 ledger.py add instagram "<format>"`.
@@ -70,6 +72,7 @@ Rendering a video takes about 6 minutes, so always start renders in the backgrou
 4. YouTube (every day): the owner uploads by hand. Send the files with SendUserFile and one SendUserMessage in Persian:
    - Short 1, the World Cup of Countries (shorts/short_<SEED>.mp4): title = youtube_title, description = instagram_caption, tags = youtube_tags joined with ", ", and first_comment as the comment to pin.
    - On Instagram days, Short 2, the same Persian reel (reels/reel_<SEED>.mp4): title = its youtube_title, description = its instagram_caption, tags = its youtube_tags joined with ", ", and its first_comment to pin.
+   - On Tuesday and Friday, if make_request.py made a video, Short 2 is that requested match (reels/request_<SEED>.mp4), with its texts in the same way, and one Persian line reminding the user to reply "ساختیمش" under the comment that asked for it.
    Put every title, description, tags list and comment in its own code block so each can be copied with one tap. Add one line on timing: the Persian Short goes up right away (Iranian evening, about 21:30–22:30 Tehran); the World Cup Short is scheduled in YouTube Studio for tomorrow 16:00 Tehran (midday in Europe, evening in South and Southeast Asia, and the hour Metricool's data shows as YouTube's best every day).
    Finally commit and push posts_log.json (`git add -A && git commit -m "Log posts" && git push origin HEAD:main`).
 
