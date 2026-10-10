@@ -1,0 +1,306 @@
+{
+  "season": 1,
+  "items": [
+    {
+      "n": 1,
+      "date": "2026-10-11",
+      "date_fa": "۱۹ مهر",
+      "kind": "cup",
+      "round": 0,
+      "match": 2,
+      "teams": [
+        "شیراز",
+        "رشت"
+      ],
+      "winner": "رشت",
+      "lead": 52,
+      "lead_changes": 4,
+      "seed": 1792000100,
+      "label": "یک‌هشتم نهایی · بازی ۳ از ۸",
+      "state": "season/state_000.json",
+      "video": "season/01_0_2.mp4",
+      "bracket": "season/01_bracket.png"
+    },
+    {
+      "n": 2,
+      "date": "2026-10-12",
+      "date_fa": "۲۰ مهر",
+      "kind": "cup",
+      "round": 0,
+      "match": 3,
+      "teams": [
+        "همدان",
+        "تبریز"
+      ],
+      "winner": "همدان",
+      "lead": 52,
+      "lead_changes": 4,
+      "seed": 1792000201,
+      "label": "یک‌هشتم نهایی · بازی ۴ از ۸",
+      "state": "season/state_001.json",
+      "video": "season/02_0_3.mp4",
+      "bracket": "season/02_bracket.png"
+    },
+    {
+      "n": 3,
+      "date": "2026-10-14",
+      "date_fa": "۲۲ مهر",
+      "kind": "cup",
+      "round": 0,
+      "match": 4,
+      "teams": [
+        "ارومیه",
+        "زاهدان"
+      ],
+      "winner": "ارومیه",
+      "lead": 52,
+      "lead_changes": 5,
+      "seed": 1792000303,
+      "label": "یک‌هشتم نهایی · بازی ۵ از ۸",
+      "state": "season/state_002.json",
+      "video": "season/03_0_4.mp4",
+      "bracket": "season/03_bracket.png"
+    },
+    {
+      "n": 4,
+      "date": "2026-10-15",
+      "date_fa": "۲۳ مهر",
+      "kind": "cup",
+      "round": 0,
+      "match": 5,
+      "teams": [
+        "اصفهان",
+        "یزد"
+      ],
+      "winner": "اصفهان",
+      "lead": 59,
+      "lead_changes": 6,
+      "seed": 1792000402,
+      "label": "یک‌هشتم نهایی · بازی ۶ از ۸",
+      "state": "season/state_003.json",
+      "video": "season/04_0_5.mp4",
+      "bracket": "season/04_bracket.png"
+    },
+    {
+      "n": 5,
+      "date": "2026-10-17",
+      "date_fa": "۲۵ مهر",
+      "kind": "cup",
+      "round": 0,
+      "match": 6,
+      "teams": [
+        "کرمانشاه",
+        "کرج"
+      ],
+      "winner": "کرمانشاه",
+      "lead": 58,
+      "lead_changes": 6,
+      "seed": 1792000505,
+      "label": "یک‌هشتم نهایی · بازی ۷ از ۸",
+      "state": "season/state_004.json",
+      "video": "season/05_0_6.mp4",
+      "bracket": "season/05_bracket.png"
+    },
+    {
+      "n": 6,
+      "date": "2026-10-18",
+      "date_fa": "۲۶ مهر",
+      "kind": "cup",
+      "round": 0,
+      "match": 7,
+      "teams": [
+        "اردبیل",
+        "کرمان"
+      ],
+      "winner": "کرمان",
+      "lead": 52,
+      "lead_changes": 6,
+      "seed": 1792000605,
+      "label": "یک‌هشتم نهایی · بازی ۸ از ۸",
+      "state": "season/state_005.json",
+      "video": "season/06_0_7.mp4",
+      "bracket": "season/06_bracket.png"
+    },
+    {
+      "n": 7,
+      "date": "2026-10-19",
+      "date_fa": "۲۷ مهر",
+      "kind": "recap",
+      "round": 0,
+      "label": "نتایج یک‌هشتم نهایی",
+      "state": "season/state_006.json",
+      "video": "season/07_recap_0.mp4"
+    },
+    {
+      "n": 8,
+      "date": "2026-10-21",
+      "date_fa": "۲۹ مهر",
+      "kind": "cup",
+      "round": 1,
+      "match": 0,
+      "teams": [
+        "قم",
+        "مشهد"
+      ],
+      "winner": "قم",
+      "lead": 53,
+      "lead_changes": 4,
+      "seed": 1792000800,
+      "label": "یک‌چهارم نهایی · بازی ۱ از ۴",
+      "state": "season/state_007.json",
+      "video": "season/08_1_0.mp4",
+      "bracket": "season/08_bracket.png"
+    },
+    {
+      "n": 9,
+      "date": "2026-10-22",
+      "date_fa": "۳۰ مهر",
+      "kind": "cup",
+      "round": 1,
+      "match": 1,
+      "teams": [
+        "رشت",
+        "همدان"
+      ],
+      "winner": "همدان",
+      "lead": 77,
+      "lead_changes": 6,
+      "seed": 1792000904,
+      "label": "یک‌چهارم نهایی · بازی ۲ از ۴",
+      "state": "season/state_008.json",
+      "video": "season/09_1_1.mp4",
+      "bracket": "season/09_bracket.png"
+    },
+    {
+      "n": 10,
+      "date": "2026-10-24",
+      "date_fa": "۲ آبان",
+      "kind": "cup",
+      "round": 1,
+      "match": 2,
+      "teams": [
+        "ارومیه",
+        "اصفهان"
+      ],
+      "winner": "اصفهان",
+      "lead": 53,
+      "lead_changes": 5,
+      "seed": 1792001001,
+      "label": "یک‌چهارم نهایی · بازی ۳ از ۴",
+      "state": "season/state_009.json",
+      "video": "season/10_1_2.mp4",
+      "bracket": "season/10_bracket.png"
+    },
+    {
+      "n": 11,
+      "date": "2026-10-25",
+      "date_fa": "۳ آبان",
+      "kind": "cup",
+      "round": 1,
+      "match": 3,
+      "teams": [
+        "کرمانشاه",
+        "کرمان"
+      ],
+      "winner": "کرمان",
+      "lead": 68,
+      "lead_changes": 7,
+      "seed": 1792001101,
+      "label": "یک‌چهارم نهایی · بازی ۴ از ۴",
+      "state": "season/state_010.json",
+      "video": "season/11_1_3.mp4",
+      "bracket": "season/11_bracket.png"
+    },
+    {
+      "n": 12,
+      "date": "2026-10-26",
+      "date_fa": "۴ آبان",
+      "kind": "recap",
+      "round": 1,
+      "label": "نتایج یک‌چهارم نهایی",
+      "state": "season/state_011.json",
+      "video": "season/12_recap_1.mp4"
+    },
+    {
+      "n": 13,
+      "date": "2026-10-28",
+      "date_fa": "۶ آبان",
+      "kind": "cup",
+      "round": 2,
+      "match": 0,
+      "teams": [
+        "قم",
+        "همدان"
+      ],
+      "winner": "قم",
+      "lead": 59,
+      "lead_changes": 7,
+      "seed": 1792001303,
+      "label": "نیمه‌نهایی · بازی ۱ از ۲",
+      "state": "season/state_012.json",
+      "video": "season/13_2_0.mp4",
+      "bracket": "season/13_bracket.png"
+    },
+    {
+      "n": 14,
+      "date": "2026-10-29",
+      "date_fa": "۷ آبان",
+      "kind": "cup",
+      "round": 2,
+      "match": 1,
+      "teams": [
+        "اصفهان",
+        "کرمان"
+      ],
+      "winner": "اصفهان",
+      "lead": 73,
+      "lead_changes": 5,
+      "seed": 1792001404,
+      "label": "نیمه‌نهایی · بازی ۲ از ۲",
+      "state": "season/state_013.json",
+      "video": "season/14_2_1.mp4",
+      "bracket": "season/14_bracket.png"
+    },
+    {
+      "n": 15,
+      "date": "2026-10-31",
+      "date_fa": "۹ آبان",
+      "kind": "recap",
+      "round": 2,
+      "label": "نتایج نیمه‌نهایی",
+      "state": "season/state_014.json",
+      "video": "season/15_recap_2.mp4"
+    },
+    {
+      "n": 16,
+      "date": "2026-11-01",
+      "date_fa": "۱۰ آبان",
+      "kind": "cup",
+      "round": 3,
+      "match": 0,
+      "teams": [
+        "قم",
+        "اصفهان"
+      ],
+      "winner": "اصفهان",
+      "lead": 55,
+      "lead_changes": 6,
+      "seed": 1792001600,
+      "label": "فینال",
+      "state": "season/state_015.json",
+      "video": "season/16_3_0.mp4",
+      "bracket": "season/16_bracket.png"
+    },
+    {
+      "n": 17,
+      "date": "2026-11-02",
+      "date_fa": "۱۱ آبان",
+      "kind": "recap",
+      "round": 3,
+      "label": "نتایج فینال",
+      "state": "season/state_016.json",
+      "video": "season/17_recap_3.mp4"
+    }
+  ],
+  "final_state": "season/state_017.json"
+}

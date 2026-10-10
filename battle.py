@@ -361,6 +361,8 @@ print(f"seed={SEED} format={FORMAT} teams={[t[0] for t in TEAMS]} winner={TEAMS[
       f"lead_changes={lead_changes} powers={[(p['kind'], round(p['t0'], 1), TEAMS[p['team']][0]) for p in powers]}")
 if os.environ.get("DRY"):
     print("share every 2s:", [" ".join(f"{s:.2f}" for s in frames_share[i]) for i in range(0, len(frames_share), 2 * FPS)])
+    if os.environ.get("SAVE_DRY") and FORMAT == "cup":     # used by build_season.py to play a season ahead
+        cup.save(CUP_STATE)
     sys.exit()
 
 # ---------------- audio ----------------
