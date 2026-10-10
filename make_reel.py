@@ -2,7 +2,8 @@
 
 Usage: python3 make_reel.py [FORMAT]
 FORMAT is one of cup, derby, cities, colors, ring. Without it, the City Cup
-series plays its next match, and every fourth reel is a derby instead.
+series plays its next match, every fourth reel is a derby instead, and the day
+after a round finishes the reel is that round's recap.
 Writes reels/reel_<SEED>.mp4 and reels/reel_<SEED>.json and prints the json path.
 """
 import glob, json, os, random, subprocess, sys, time
@@ -19,18 +20,32 @@ def recent_formats(n):
             out.append(json.load(fh).get("format", "ring"))
     return out
 
+sys.path.insert(0, HERE)
+import cup
+
 seed = int(time.time())
 fmt = sys.argv[1] if len(sys.argv) > 1 else None
+recap_round = None
 if fmt is None:
-    last3 = recent_formats(3)
-    fmt = "derby" if len(last3) == 3 and all(f == "cup" for f in last3) else "cup"
+    recap_round = cup.round_to_recap(cup.load())
+    if recap_round is not None:          # a City Cup round just finished: today's reel is its recap
+        fmt = "recap"
+    else:
+        last3 = recent_formats(3)
+        fmt = "derby" if len(last3) == 3 and all(f == "cup" for f in last3) else "cup"
 
 out = os.path.join(REELS, f"reel_{seed}.mp4")
-if fmt == "ring":
+if fmt == "recap":
+    cmd = [sys.executable, os.path.join(HERE, "recap.py"), out, "cup", str(recap_round)]
+elif fmt == "ring":
     cmd = [sys.executable, os.path.join(HERE, "reel_generator.py"), out, str(seed)]
 else:
     cmd = [sys.executable, os.path.join(HERE, "battle.py"), out, str(seed), fmt]
 subprocess.run(cmd, check=True)
+if fmt == "recap":
+    st = cup.load()
+    st.setdefault("recaps_done", []).append(recap_round)
+    cup.save(st)
 meta_path = os.path.splitext(out)[0] + ".json"
 with open(meta_path, encoding="utf-8") as fh:
     meta = json.load(fh)

@@ -92,9 +92,10 @@ def shade(c, k):  # k<1 darker, k>1 lighter
 
 # ---------------- simulation ----------------
 W, H, FPS = 1080, 1920, 30
-BATTLE, FINISH, OUTRO = 16.0, 2.2, 3.4      # fight, knockout sweep, winner card
+BATTLE, FINISH, OUTRO = 15.0, 2.3, 4.6      # fight, knockout sweep + K.O., winner podium
 SIM_END = BATTLE + FINISH
-DUR = SIM_END + OUTRO
+INTRO = 2.8 if NT == 2 else 0.0              # wrestling-style entrance before the fight
+DUR = INTRO + SIM_END + OUTRO
 N = int(DUR * FPS)
 AX, AY, AS = 60, 540, 960           # arena square
 GN = 25 if FORMAT in ("cup", "worldcup") else 24  # grid cells per side (odd count = no ties)
@@ -141,7 +142,7 @@ POWER_NAME = {"giant": "توپ غول‌پیکر", "rpg": "آرپی‌جی", "li
 if EN:
     POWER_NAME = {"giant": "GIANT BALL", "rpg": "RPG", "lightning": "LIGHTNING", "clone": "CLONES"}
 FRENZY = 5.0                         # the last seconds: faster balls, more powers
-POWER_TIMES = [rng.uniform(2.0, 2.6), rng.uniform(5.8, 6.6), rng.uniform(9.2, 9.8),
+POWER_TIMES = [rng.uniform(2.0, 2.6), rng.uniform(5.8, 6.6), rng.uniform(8.4, 9.0),
                BATTLE - rng.uniform(4.3, 4.0), BATTLE - rng.uniform(2.3, 2.0)]
 POWER_KINDS = rng.sample(list(POWER_NAME), 3)
 POWER_KINDS += [rng.choice([k for k in ("rpg", "lightning", "giant") if k != POWER_KINDS[-1]])]
@@ -316,7 +317,7 @@ if os.environ.get("DRY"):
 # ---------------- audio ----------------
 import sfx
 SR = sfx.SR
-audio = np.zeros(int(SR * (DUR + 3)))
+audio = np.zeros(int(SR * (SIM_END + OUTRO + 4)))
 def tone(f, L, decay, harm=0.3):
     tt = np.arange(L) / SR
     env = np.minimum(tt / 0.003, 1) * np.exp(-tt * decay)
@@ -329,7 +330,8 @@ for t0, ti in captures:
     if t0 < BATTLE and t0 - last[ti] >= 0.07:
         last[ti] = t0
         add(tone(team_freq[ti] * rng.choice([1, 1.122, 1.26]), int(SR * 0.12), 38), t0, 0.2)
-add(tone(523, int(SR * 0.25), 6), 0.0, 0.5); add(tone(784, int(SR * 0.3), 6), 0.12, 0.5)   # start
+add(sfx.bell(2), 0.0, 0.75)                                                             # ding ding: fight!
+add(sfx.drum_loop(BATTLE, 128, BATTLE - FRENZY), 0.0, 0.32)                            # beat under the fight
 for k in range(int(FRENZY)):                                                              # countdown beeps
     add(tone(880 if k < 3 else 660, int(SR * 0.18), 14, 0.1), BATTLE - 1 - k, 0.7 if k < 3 else 0.5)
 tb = BATTLE - FRENZY
@@ -350,12 +352,34 @@ for e in effects:
         add(sfx.thunder(0.9, seed=int(e["t0"] * 100)), e["t0"], 0.6)
     elif e["type"] == "poof" and e["t0"] >= BATTLE:
         add(sfx.pop(420), e["t0"] + rng.uniform(0, 0.15), 0.6)
-add(sfx.boom(2.0, seed=7), BATTLE, 1.3)                       # knockout
-add(sfx.whoosh(1.4, seed=8, rising=False), BATTLE + 0.05, 0.5)
-chord = sum(tone(440 * 2 ** ((m - 69) / 12), int(SR * 2.5), 1.6) for m in (72, 76, 79, 84))
-add(chord, SIM_END, 0.22)
-add(sfx.laugh(seed=SEED % 1000), SIM_END + 0.25, 1.15)          # the winner laughs at the loser
-d = int(0.1 * SR); wet = np.zeros_like(audio); wet[d:] = audio[:-d] * 0.2
+add(sfx.whistle(), BATTLE, 0.7)                               # time!
+add(sfx.boom(2.0, seed=7), BATTLE + 0.1, 1.1)                  # final blow
+add(sfx.whoosh(1.4, seed=8, rising=False), BATTLE + 0.15, 0.45)
+KO_T = BATTLE + SWEEP
+shakes.append((KO_T, 0.5, 24))
+add(sfx.shatter(), KO_T, 0.9); add(sfx.boom(1.2, seed=11), KO_T, 1.0)
+add(sfx.crowd(OUTRO, seed=12), SIM_END, 0.3)
+add(sfx.bell(1), SIM_END + 0.55, 0.35)                         # crown lands
+LAUGH_T0 = SIM_END + 0.6
+LAUGH = sfx.laugh(seed=SEED % 1000)
+LAUGH_ENV = sfx.envelope(LAUGH, FPS)
+add(LAUGH, LAUGH_T0, 1.5)                                      # the winner laughs at the loser
+add(sfx.sad_trombone(), LAUGH_T0 + len(LAUGH) / SR + 0.05, 0.5)  # wah wah wah waaah
+full = np.zeros(int(SR * (DUR + 1)))
+o = int(INTRO * SR)
+full[o:o + len(audio)] += audio[: len(full) - o]
+SHOUT_ENV = []
+if INTRO:
+    def add_abs(sig, t0, gain):
+        s0 = int(t0 * SR); seg = full[s0:s0 + len(sig)]; seg += sig[: len(seg)] * gain
+    add_abs(sfx.crowd(INTRO + 0.6, seed=13), 0.0, 0.35)
+    for k, (t0, f0) in enumerate(((0.3, 150), (1.45, 185))):
+        sh = sfx.shout(seed=SEED % 100 + k, f0=f0)
+        SHOUT_ENV.append((t0, sfx.envelope(sh, FPS)))
+        add_abs(sh, t0, 1.0)
+    add_abs(sfx.boom(1.2, seed=14), 2.25, 0.9)                  # VS
+audio = full
+d = int(0.1 * SR); wet = np.zeros_like(audio); wet[d:] = audio[:-d] * 0.18
 audio = (audio + wet)[: int(SR * DUR)]
 fade = int(0.4 * SR); audio[-fade:] *= np.linspace(1, 0, fade)
 audio = audio / (np.abs(audio).max() + 1e-9) * 0.89
@@ -412,9 +436,9 @@ def draw_bar(img, share, hl=-1):
         label = f"{TEAMS[t][0]} {pct}%" if EN else f"{TEAMS[t][0]} {fa(pct)}٪"
         if TEAM_FLAGS:
             tw = d.textlength(label, font=F(size))
-            fl = TEAM_FLAGS[t].resize((48, 36), Image.LANCZOS)
-            img.alpha_composite(fl, (int(cx - (tw + 58) / 2), int(by + bh + 46 - 18)))
-            cx += 29
+            fl = TEAM_FLAGS[t].resize((60, 45), Image.LANCZOS)
+            img.alpha_composite(fl, (int(cx - (tw + 72) / 2), int(by + bh + 46 - 22)))
+            cx += 36
         d.text((cx, by + bh + 46), label, font=F(size), fill=shade(TEAMS[t][1], 1.35) + (255,),
                anchor="mm", direction="ltr" if EN else "rtl", language="en" if EN else "fa")
 
@@ -549,23 +573,25 @@ def draw_effects(img, tnow):
 
 def header(img):
     if not TEAM_FLAGS:
-        header(img)
+        text(img, (W / 2, 200), HOOK, 74)
         return
-    size = text(img, (W / 2, 200), HOOK, 74, max_w=720)
+    size = text(img, (W / 2, 200), HOOK, 72, max_w=640)
     tw = ImageDraw.Draw(img).textlength(HOOK, font=F(size))
     for t, side in ((0, -1), (1, 1)):
-        fl = TEAM_FLAGS[t].resize((88, 66), Image.LANCZOS)
-        x = W / 2 + side * (tw / 2 + 30) - (88 if side < 0 else 0)
-        frame = Image.new("RGBA", (96, 74), (255, 255, 255, 255))
-        img.alpha_composite(frame, (int(x) - 4, 200 - 37))
-        img.alpha_composite(fl, (int(x), 200 - 33))
+        fl = TEAM_FLAGS[t].resize((120, 90), Image.LANCZOS)
+        x = W / 2 + side * (tw / 2 + 28) - (120 if side < 0 else 0)
+        img.alpha_composite(Image.new("RGBA", (128, 98), (255, 255, 255, 255)), (int(x) - 4, 200 - 49))
+        img.alpha_composite(fl, (int(x), 200 - 45))
 
-def text(img, xy, s, size, col=(255, 255, 255, 255), bold=True, max_w=960):
+def text(img, xy, s, size, col=(255, 255, 255, 255), bold=True, max_w=960, stroke=0):
     d = ImageDraw.Draw(img)
     dr, lg = ("ltr", "en") if EN else ("rtl", "fa")
+    if not any("\u0600" <= ch <= "\u06ff" for ch in s):     # Latin-only text (VS, K.O.!) reads left to right
+        dr, lg = "ltr", "en"
     while size > 24 and d.textlength(s, font=F(size, bold), direction=dr, language=lg) > max_w:
         size -= 2
-    d.text(xy, s, font=F(size, bold), fill=col, anchor="mm", direction=dr, language=lg)
+    d.text(xy, s, font=F(size, bold), fill=col, anchor="mm", direction=dr, language=lg,
+           stroke_width=stroke, stroke_fill=(15, 10, 25, col[3] if len(col) > 3 else 255))
     return size
 
 def banner(img, title, sub, col, age, life=1.5, cy=AY + 120):
@@ -591,6 +617,66 @@ def shake_offset(tnow):
     r = random.Random(int(tnow * 1000))
     return int(r.uniform(-amp, amp)), int(r.uniform(-amp, amp))
 
+import mascot as MS
+BODY = [TEAM_FLAGS[t] if TEAM_FLAGS else None for t in range(NT)]
+_glows = {}
+def glow(t, r):
+    key = (t, r)
+    if key not in _glows:
+        g = Image.new("RGBA", (r * 4, r * 4), (0, 0, 0, 0))
+        ImageDraw.Draw(g).ellipse([r * 0.6, r * 0.6, r * 3.4, r * 3.4], fill=TEAMS[t][1] + (120,))
+        _glows[key] = g.filter(ImageFilter.GaussianBlur(r * 0.35))
+    return _glows[key]
+
+def put(img, sprite, cx, cy):
+    img.alpha_composite(sprite, (int(cx - sprite.width / 2), int(cy - sprite.height / 2)))
+
+def ease_out(k):
+    k = max(0.0, min(1.0, k))
+    return 1 - (1 - k) ** 3
+
+def ease_back(k):
+    k = max(0.0, min(1.0, k)); c = 1.7
+    return 1 + (c + 1) * (k - 1) ** 3 + c * (k - 1) ** 2
+
+def env_at(env, t):
+    i = int(t * FPS)
+    return float(env[i]) if 0 <= i < len(env) else 0.0
+
+STAGE_Y = AY + 390
+def draw_intro(v):
+    img = BG.copy()
+    header(img)
+    text(img, (W / 2, 290), SUB, 44, (255, 255, 255, 170), bold=False)
+    draw_bar(img, [1.0 / NT] * NT)
+    lay, d = layer()
+    d.rounded_rectangle([AX - 8, AY - 8, AX + AS + 8, AY + AS + 8], 22, fill=(24, 20, 44, 255))
+    img.alpha_composite(lay)
+    for t, (t_in, x_from, x_to) in enumerate(((0.0, -260, 300), (1.15, W + 260, 780))):
+        k = v - t_in
+        if k < 0:
+            continue
+        x = x_from + (x_to - x_from) * ease_out(k / 0.32)
+        sh_t0, sh_env = SHOUT_ENV[t]
+        mouth = 0.15 + 0.85 * env_at(sh_env, v - sh_t0)
+        arms = ease_out((k - 0.22) / 0.25)
+        y = STAGE_Y - abs(math.sin(k * 9)) * 10 * min(1, k / 0.3)
+        put(img, glow(t, 150), x, y)
+        put(img, MS.mascot(BODY[t], TEAMS[t][1], 140, "angry", arms, mouth, k), x, y)
+        text(img, (x, AY + 660), TEAMS[t][0], 62, shade(TEAMS[t][1], 1.45) + (255,), max_w=440, stroke=4)
+    if v >= 2.25:
+        k = (v - 2.25) / 0.15
+        size = int(170 * (1 + 2.0 * (1 - ease_out(k))))
+        text(img, (W / 2, STAGE_Y + 10), "VS", min(size, 420), (255, 210, 63, 255), max_w=900, stroke=10)
+    return img
+
+def big_word(img, word, t_rel, col, life):
+    if not (0 <= t_rel < life):
+        return
+    pop = 1 + 1.2 * (1 - ease_out(t_rel / 0.16))
+    a = int(255 * min(1, (life - t_rel) / 0.2))
+    text(img, (W / 2, AY + AS / 2), word, int(180 * pop), col[:3] + (a,), max_w=980, stroke=12)
+
 ff = subprocess.Popen([
     "ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
     "-r", str(FPS), "-i", "-", "-i", WAV, "-c:v", "libx264", "-preset", "medium", "-crf", "18",
@@ -608,7 +694,19 @@ final_frame = None
 PREVIEW_AT = sorted({int(1.0 * FPS)} | {int((p["t0"] + 0.35) * FPS) for p in powers}
                     | {int((e["t1"] - 0.15) * FPS) for e in effects if e["type"] == "rpg"}
                     | {int((BATTLE + 0.6) * FPS), int((SIM_END + 1.4) * FPS)})
-for fi in range(N):
+INTRO_F = int(round(INTRO * FPS))
+PREVIEW_V = ({INTRO_F + f for f in PREVIEW_AT} | {int(0.8 * FPS), int(1.9 * FPS), int(2.45 * FPS),
+             INTRO_F + int((KO_T + 0.2) * FPS), INTRO_F + int((SIM_END + 2.0) * FPS)})
+LOSER = int(np.argsort(LEAD_SHARE)[-2])
+for fv in range(N):
+    if fv < INTRO_F:
+        img = draw_intro(fv / FPS)
+        ImageDraw.Draw(img).text((W / 2, H - 110), "BARKHORD" if EN else "@barkhord.tv", font=F(36, False), fill=(255, 255, 255, 110), anchor="mm")
+        ff.stdin.write(img.convert("RGB").tobytes())
+        if os.environ.get("PREVIEW") and fv in PREVIEW_V:
+            img.convert("RGB").save(f"{OUT}.preview_{fv:04d}.png")
+        continue
+    fi = fv - INTRO_F
     tnow = fi / FPS
     img = BG.copy()
     header(img)
@@ -627,6 +725,9 @@ for fi in range(N):
         for p in powers:
             if p["t0"] <= tnow < p["t0"] + 1.5:
                 banner(img, POWER_NAME[p["kind"]] + "!", (possessive(TEAMS[p['team']][0]) + " special power" if EN else f"قدرت ویژه‌ی {TEAMS[p['team']][0]}"), TEAMS[p["team"]][1], tnow - p["t0"])
+        if INTRO:
+            big_word(img, "FIGHT!" if EN else "شروع!", tnow, (255, 230, 80), 0.7)
+        big_word(img, "K.O.!", tnow - KO_T, (255, 70, 70), SIM_END - KO_T + 0.05)
         if BATTLE - FRENZY <= tnow < BATTLE:
             pulse = 0.5 + 0.5 * math.sin((tnow - (BATTLE - FRENZY)) * 2 * math.pi * 2)
             lay, d = layer()
@@ -658,40 +759,43 @@ for fi in range(N):
         img = final_frame.copy()
         header(img)
         text(img, (W / 2, 290), SUB, 44, (255, 255, 255, 170), bold=False)
-        img.alpha_composite(Image.new("RGBA", (W, H), (0, 0, 0, int(min(1, bt / 0.3) * 150))))
+        img.alpha_composite(Image.new("RGBA", (W, H), (0, 0, 0, int(min(1, bt / 0.3) * 185))))
         lay, d = layer()
         pos = np.array([W / 2, AY + AS / 2]) + CV * bt + np.array([0, 900]) * bt ** 2 / 2
         a = int(255 * max(0, 1 - bt / OUTRO))
         for q in range(NP):
             x, y = pos[q]
             d.ellipse([x - CSZ[q], y - CSZ[q], x + CSZ[q], y + CSZ[q]], fill=CCOL[q] + (a,))
-        sc = min(1, bt / 0.25)
-        card_h = 400 if TEAM_FLAGS else 360
-        cy = AY + AS / 2
-        d.rounded_rectangle([110, cy - card_h / 2, 970, cy + card_h / 2], 40,
-                            fill=shade(TEAMS[WIN][1], 0.75) + (int(235 * sc),),
-                            outline=shade(TEAMS[WIN][1], 1.4) + (int(255 * sc),), width=6)
         img.alpha_composite(lay)
-        if sc >= 1:
-            if TEAM_FLAGS:
-                text(img, (W / 2, cy - 140), "WINNER", 46, (255, 255, 255, 200), bold=False)
-                fl = TEAM_FLAGS[WIN].resize((140, 105), Image.LANCZOS)
-                img.alpha_composite(Image.new("RGBA", (150, 115), (255, 255, 255, 255)), (int(W / 2 - 75), int(cy - 112)))
-                img.alpha_composite(fl, (int(W / 2 - 70), int(cy - 107)))
-                text(img, (W / 2, cy + 50), TEAMS[WIN][0], 96, max_w=800)
-                text(img, (W / 2, cy + 130), CARD_SUB, 44, (255, 255, 255, 220), bold=False, max_w=800)
-            else:
-                text(img, (W / 2, cy - 100), "برنده", 52, (255, 255, 255, 200), bold=False)
-                text(img, (W / 2, cy), TEAMS[WIN][0], 120, max_w=800)
-                text(img, (W / 2, cy + 110), CARD_SUB, 50, (255, 255, 255, 220), bold=False, max_w=800)
+        # winner on the podium: pops in, crown drops, laughs with the mouth in sync
+        k_in = bt / 0.4
+        r_w = int(185 * max(0.2, ease_back(k_in)))
+        lt = (SIM_END + bt) - LAUGH_T0
+        mouth = 0.2 + 0.8 * env_at(LAUGH_ENV, lt) if lt >= 0 else 0.25
+        bounce = abs(math.sin(bt * 7)) * 14 * (env_at(LAUGH_ENV, lt) if lt >= 0 else 0)
+        wx, wy = W / 2, STAGE_Y - 20 - bounce
+        put(img, glow(WIN, 190), wx, wy)
+        put(img, MS.mascot(BODY[WIN], TEAMS[WIN][1], r_w, "laugh", 0.85 + 0.15 * math.sin(bt * 9), mouth, bt), wx, wy)
+        if bt >= 0.2:
+            kc = ease_out((bt - 0.2) / 0.35)
+            cr = MS.crown(185)
+            cy_land = wy - 0.86 * 185 - cr.height / 2 + 4
+            put(img, cr, wx, cy_land - (1 - kc) * 420)
+        # loser in the corner, crying
+        if bt >= 0.3:
+            ly = AY + AS - 120 + 200 * (1 - ease_out((bt - 0.3) / 0.3))
+            put(img, MS.mascot(BODY[LOSER], TEAMS[LOSER][1], 80, "sad", 0.0, 0.0, bt), AX + 130 + math.sin(bt * 30) * 2, ly)
+        if bt >= 0.35:
+            text(img, (W / 2, AY + 680), TEAMS[WIN][0], 92, (255, 255, 255, 255), max_w=760, stroke=6)
+            text(img, (W / 2, AY + 765), CARD_SUB, 44, shade(TEAMS[WIN][1], 1.5) + (255,), bold=False, max_w=760, stroke=3)
         if bt > 0.7:
             text(img, (W / 2, AY + AS + 90), CTA_END, 58, shade(TEAMS[WIN][1], 1.45) + (255,))
         if bt > 1.2:
             text(img, (W / 2, AY + AS + 170), FOLLOW_LINE, 42, (255, 255, 255, 200), bold=False)
     ImageDraw.Draw(img).text((W / 2, H - 110), "BARKHORD" if EN else "@barkhord.tv", font=F(36, False), fill=(255, 255, 255, 110), anchor="mm")
     ff.stdin.write(img.convert("RGB").tobytes())
-    if os.environ.get("PREVIEW") and fi in PREVIEW_AT:
-        img.convert("RGB").save(f"{OUT}.preview_{fi:04d}.png")
+    if os.environ.get("PREVIEW") and fv in PREVIEW_V:
+        img.convert("RGB").save(f"{OUT}.preview_{fv:04d}.png")
 ff.stdin.close(); ff.wait()
 shutil.rmtree(WORK, ignore_errors=True)
 
@@ -716,7 +820,7 @@ meta = {"seed": SEED, "format": FORMAT, "teams": names, "winner": TEAMS[WIN][0],
         "powers": [[p["kind"], TEAMS[p["team"]][0]] for p in powers], "duration": round(DUR, 2),
         "instagram_caption": caption, "first_comment": first,
         "youtube_title": yt_title, "youtube_tags": yt_tags,
-        "cover_ms": int((POWER_TIMES[1] + 0.4) * 1000)}
+        "cover_ms": int((INTRO + POWER_TIMES[1] + 0.4) * 1000)}
 with open(os.path.splitext(OUT)[0] + ".json", "w", encoding="utf-8") as fh:
     json.dump(meta, fh, ensure_ascii=False, indent=2)
 print("done", OUT)

@@ -109,3 +109,15 @@ def match_label(r, m):
     if r == 4:
         return "Final"
     return f"{ROUND_NAMES[r]} · Match {m + 1}/{SIZES[r]}"
+
+
+def round_to_recap(state):
+    """Index of a finished round that has no recap Short yet, or None."""
+    if state is None:
+        return None
+    _fill_next_rounds(state)
+    done = state.setdefault("recaps_done", [])
+    for r, matches in enumerate(state["rounds"]):
+        if len(matches) == SIZES[r] and all(w for _, _, w in matches) and r not in done:
+            return r
+    return None

@@ -170,3 +170,16 @@ if __name__ == "__main__":
             st, *_ = next_match(1)
         draw_bracket(st, sys.argv[2])
         print(sys.argv[2])
+
+
+def round_to_recap(state):
+    """Index of a finished round that has no recap reel yet, or None."""
+    if state is None:
+        return None
+    _fill_next_rounds(state)
+    sizes = [8, 4, 2, 1]
+    done = state.setdefault("recaps_done", [])
+    for r, matches in enumerate(state["rounds"]):
+        if len(matches) == sizes[r] and all(w for _, _, w in matches) and r not in done:
+            return r
+    return None
