@@ -61,7 +61,8 @@
       "label": "یک‌هشتم نهایی · بازی ۵ از ۸",
       "state": "season/state_002.json",
       "video": "season/03_0_4.mp4",
-      "bracket": "season/03_bracket.png"
+      "bracket": "season/03_bracket.png",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 4,
@@ -81,7 +82,8 @@
       "label": "یک‌هشتم نهایی · بازی ۶ از ۸",
       "state": "season/state_003.json",
       "video": "season/04_0_5.mp4",
-      "bracket": "season/04_bracket.png"
+      "bracket": "season/04_bracket.png",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 5,
@@ -101,7 +103,8 @@
       "label": "یک‌هشتم نهایی · بازی ۷ از ۸",
       "state": "season/state_004.json",
       "video": "season/05_0_6.mp4",
-      "bracket": "season/05_bracket.png"
+      "bracket": "season/05_bracket.png",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 6,
@@ -121,7 +124,8 @@
       "label": "یک‌هشتم نهایی · بازی ۸ از ۸",
       "state": "season/state_005.json",
       "video": "season/06_0_7.mp4",
-      "bracket": "season/06_bracket.png"
+      "bracket": "season/06_bracket.png",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 7,
@@ -131,7 +135,8 @@
       "round": 0,
       "label": "نتایج یک‌هشتم نهایی",
       "state": "season/state_006.json",
-      "video": "season/07_recap_0.mp4"
+      "video": "season/07_recap_0.mp4",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 8,
@@ -151,7 +156,8 @@
       "label": "یک‌چهارم نهایی · بازی ۱ از ۴",
       "state": "season/state_007.json",
       "video": "season/08_1_0.mp4",
-      "bracket": "season/08_bracket.png"
+      "bracket": "season/08_bracket.png",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 9,
@@ -171,7 +177,8 @@
       "label": "یک‌چهارم نهایی · بازی ۲ از ۴",
       "state": "season/state_008.json",
       "video": "season/09_1_1.mp4",
-      "bracket": "season/09_bracket.png"
+      "bracket": "season/09_bracket.png",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 10,
@@ -191,7 +198,8 @@
       "label": "یک‌چهارم نهایی · بازی ۳ از ۴",
       "state": "season/state_009.json",
       "video": "season/10_1_2.mp4",
-      "bracket": "season/10_bracket.png"
+      "bracket": "season/10_bracket.png",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 11,
@@ -211,7 +219,8 @@
       "label": "یک‌چهارم نهایی · بازی ۴ از ۴",
       "state": "season/state_010.json",
       "video": "season/11_1_3.mp4",
-      "bracket": "season/11_bracket.png"
+      "bracket": "season/11_bracket.png",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 12,
@@ -221,7 +230,8 @@
       "round": 1,
       "label": "نتایج یک‌چهارم نهایی",
       "state": "season/state_011.json",
-      "video": "season/12_recap_1.mp4"
+      "video": "season/12_recap_1.mp4",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 13,
@@ -241,7 +251,8 @@
       "label": "نیمه‌نهایی · بازی ۱ از ۲",
       "state": "season/state_012.json",
       "video": "season/13_2_0.mp4",
-      "bracket": "season/13_bracket.png"
+      "bracket": "season/13_bracket.png",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 14,
@@ -261,7 +272,8 @@
       "label": "نیمه‌نهایی · بازی ۲ از ۲",
       "state": "season/state_013.json",
       "video": "season/14_2_1.mp4",
-      "bracket": "season/14_bracket.png"
+      "bracket": "season/14_bracket.png",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 15,
@@ -271,7 +283,8 @@
       "round": 2,
       "label": "نتایج نیمه‌نهایی",
       "state": "season/state_014.json",
-      "video": "season/15_recap_2.mp4"
+      "video": "season/15_recap_2.mp4",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 16,
@@ -291,7 +304,8 @@
       "label": "فینال",
       "state": "season/state_015.json",
       "video": "season/16_3_0.mp4",
-      "bracket": "season/16_bracket.png"
+      "bracket": "season/16_bracket.png",
+      "instagram_scheduled": "2026-10-14"
     },
     {
       "n": 17,
@@ -301,7 +315,8 @@
       "round": 3,
       "label": "نتایج فینال",
       "state": "season/state_016.json",
-      "video": "season/17_recap_3.mp4"
+      "video": "season/17_recap_3.mp4",
+      "instagram_scheduled": "2026-10-14"
     }
   ],
   "final_state": "season/state_017.json"

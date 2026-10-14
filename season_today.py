@@ -2,7 +2,9 @@
 
 Usage: python3 season_today.py          -> prints today's item as JSON (with the paths of its video, texts
                                            and bracket image), or "none" (nothing today), or "finished"
-                                           (every video in the plan is past: the cup is over)
+                                           (every video in the plan is past: the cup is over).
+                                           "already_scheduled": true means it is already waiting in Metricool
+                                           (items 3-17 were all scheduled ahead on 2026-10-14): do not post it again.
        python3 season_today.py done N   -> marks item N as scheduled on Instagram
 """
 import datetime, json, os, sys
@@ -24,6 +26,7 @@ todays = [it for it in plan["items"] if it["date"] == today]
 if todays:
     it = dict(todays[0])
     it["texts"] = os.path.splitext(it["video"])[0] + ".json"
+    it["already_scheduled"] = bool(it.get("instagram_scheduled"))
     print(json.dumps(it, ensure_ascii=False))
 elif all(it["date"] < today for it in plan["items"]):
     print("finished")
