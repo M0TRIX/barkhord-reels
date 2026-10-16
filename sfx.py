@@ -307,3 +307,19 @@ def thunderclap(sec=2.2, seed=18):
     boom_ = np.sin(2 * np.pi * (60 * t - 12 * t ** 2)) * np.exp(-t * 4)
     roll = _lowpass(_noise(sec, seed + 1), 140) * (0.6 + 0.4 * np.sin(2 * np.pi * 3.3 * t)) * np.exp(-t * 1.4) * np.minimum(t / 0.08, 1)
     return _norm(_norm(crack) * 0.9 + _norm(boom_) * 0.8 + _norm(roll) * 1.0)
+
+
+def freeze(sec=0.9, seed=21):
+    """Ice spreading: a falling crystalline shimmer over a crackle of forming frost."""
+    rng = np.random.default_rng(seed)
+    t = _t(sec)
+    f = 3200 - 1900 * (t / sec) ** 0.6
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    shimmer = (np.sin(ph) + 0.5 * np.sin(1.51 * ph)) * (0.6 + 0.4 * np.sin(2 * np.pi * 34 * t))
+    crackle = np.zeros(len(t))
+    for _ in range(int(sec * 70)):
+        s0 = rng.integers(0, max(1, len(t) - 400))
+        L = 300
+        crackle[s0:s0 + L] += _highpass(rng.normal(0, 1, L), 3000) * np.exp(-np.arange(L) / SR * 400) * rng.uniform(0.3, 1)
+    env = np.minimum(t / 0.02, 1) * np.minimum((sec - t) / 0.2, 1)
+    return _norm((_norm(shimmer) * 0.5 + _norm(crackle) * 0.8) * env)

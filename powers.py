@@ -17,6 +17,7 @@ ACTIVE = {                         # the first four have been there from the sta
     "lightning": "2026-10-01",     # upgraded to a full thunderstorm on 2026-10-10
     "clone": "2026-10-01",
     "hammer": "2026-10-10",
+    "freeze": "2026-10-16",        # enemy balls frozen 2.2 s, ice creeps 3 cells into their land and is taken when it cracks
 }
 DEFENCE = {
     "shield": "2026-10-10",        # blocks one RPG or hammer
@@ -26,7 +27,6 @@ STRONG = {"rpg", "lightning", "giant", "hammer"}     # big enough for the final 
 
 # not built yet; in rough order of what to bring in next (Persian name, kind, idea)
 IDEAS = [
-    ("یخ‌زدگی", "freeze", "attack", "the other side's balls freeze for 2 s while ice spreads over their cells"),
     ("دیوار", "wall", "defence", "a wall rises along the border; enemy balls bounce off it for 3 s"),
     ("گردباد", "tornado", "attack", "a tornado zigzags through enemy land, taking every cell on its path"),
     ("آهنربا", "magnet", "attack", "pulls the enemy balls into a corner for 2 s"),

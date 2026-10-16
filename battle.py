@@ -133,6 +133,8 @@ else:
 
 BALLS_PER_TEAM = 2
 GIANT_R, GIANT_T = 95, 2.0
+FREEZE_T, FREEZE_DEPTH, FREEZE_MAX = 2.2, 3, 85    # freeze: seconds, cells deep, most cells the ice can take
+FROZEN = [-1.0] * NT                               # per team: frozen until this time
 balls = []   # [x, y, vx, vy, team, giant_until, expire_at]
 def spawn(t, x=None, y=None, expire=1e9):
     if x is None:
@@ -147,10 +149,10 @@ for t in range(NT):
 
 # ---- special powers: the team in last place gets one, which keeps the lead changing ----
 POWER_NAME = {"giant": "توپ غول‌پیکر", "rpg": "آرپی‌جی", "lightning": "رعد و برق", "clone": "تکثیر",
-              "hammer": "چکش غول‌پیکر", "shield": "سپر دفاعی"}
+              "hammer": "چکش غول‌پیکر", "shield": "سپر دفاعی", "freeze": "یخ‌زدگی"}
 if EN:
     POWER_NAME = {"giant": "GIANT BALL", "rpg": "RPG", "lightning": "THUNDERSTORM", "clone": "CLONES",
-                  "hammer": "GIANT HAMMER", "shield": "SHIELD"}
+                  "hammer": "GIANT HAMMER", "shield": "SHIELD", "freeze": "DEEP FREEZE"}
 POWER_TIMES = [rng.uniform(2.0, 2.6), rng.uniform(5.0, 5.6), rng.uniform(7.6, 8.2),
                rng.uniform(10.0, 10.6), OT_START + rng.uniform(1.2, 1.8)]   # the last one: a comeback chance in the final round
 import powers as PW
@@ -247,6 +249,34 @@ def trigger_power(kind, t0, team, blocked=False):
                 capture_disc(x, y, rad, team, ts)
             pending.append((ts, strike))
             shakes.append((ts, 0.22, 16))
+    elif kind == "freeze":
+        # every enemy ball stops dead for FREEZE_T s while ice creeps into their land from the border;
+        # when the ice cracks, the cells under it belong to the side that froze them
+        from scipy import ndimage as _ndi
+        powers[-1]["cy"] = BANNER_LOW
+        t1 = t0 + FREEZE_T
+        for t in range(NT):
+            if t != team:
+                FROZEN[t] = t1
+        mine_m = grid == team
+        cells, prev = [], mine_m
+        for depth in range(1, FREEZE_DEPTH + 1):
+            nxt = _ndi.binary_dilation(prev)
+            ring = np.argwhere(nxt & ~prev & ~mine_m)
+            order = list(range(len(ring)))
+            rng.shuffle(order)
+            cells += [(int(ring[q][1]), int(ring[q][0]), depth) for q in order]
+            prev = nxt
+        cells = cells[:FREEZE_MAX]
+        effects.append({"type": "freeze", "t0": t0, "t1": t1, "team": team, "cells": cells,
+                        "seed": rng.randrange(10 ** 6)})
+        def thaw(cells=cells, team=team, t1=t1):
+            for (ci, cj, _) in cells:
+                if grid[cj, ci] != team:
+                    grid[cj, ci] = team
+                    captures.append((t1, team))
+        pending.append((t1, thaw))
+        shakes.append((t1, 0.35, 14))
     elif kind == "clone":
         for k in range(3):
             src = rng.choice(mine)
@@ -258,6 +288,8 @@ TEAM_R = [BR] * NT          # final round: the leader's balls grow (see rebalanc
 def step(dt, t_now):
     for b in balls:
         x, y, vx, vy, ti, until, exp = b
+        if t_now < FROZEN[ti]:      # frozen solid: no move, no capture
+            continue
         if t_now < until or TEAM_R[ti] > BR * 1.15:
             r = GIANT_R if t_now < until else TEAM_R[ti]
             capture_disc(x, y, r + CS * 0.35, ti, t_now)
@@ -361,7 +393,7 @@ while True:
         grid[DIST <= rad] = WIN
     frames_grid.append(grid.copy())
     frames_balls.append([(b[0], b[1], b[4], t_frame < b[5], b[6] < 1e9,
-                          GIANT_R if t_frame < b[5] else TEAM_R[b[4]]) for b in balls])
+                          GIANT_R if t_frame < b[5] else TEAM_R[b[4]], t_frame < FROZEN[b[4]]) for b in balls])
     frames_share.append(np.bincount(grid.ravel(), minlength=NT) / grid.size)
     if SIM_END is not None and fi >= int(SIM_END * FPS):
         break
@@ -450,6 +482,9 @@ for e in effects:
         add(sfx.boom(1.2, seed=int(e["t1"] * 100) + 1), e["t1"], 0.55)
     elif e["type"] == "shield":
         add(sfx.shatter(seed=int(e["t1"] * 100)), e["t1"] + 0.02, 0.75)
+    elif e["type"] == "freeze":
+        add(sfx.freeze(seed=int(e["t0"] * 100)), e["t0"] + 0.05, 0.8)
+        add(sfx.shatter(seed=int(e["t1"] * 100)), e["t1"], 0.85)
     elif e["type"] == "bolt":
         add(sfx.thunderclap(1.6, seed=int(e["t0"] * 100)), e["t0"], 0.75)
     elif e["type"] == "storm":
@@ -565,8 +600,12 @@ def flag_disc(t, diam):
 def draw_balls(img, pos, tnow):
     lay = Image.new("RGBA", (W * 2, H * 2), (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
-    for (x, y, t, giant, clone, rad) in pos:
+    for (x, y, t, giant, clone, rad, frozen) in pos:
         cx, cy = (AX + x) * 2, (AY + y) * 2
+        if frozen:               # an ice block around the ball (drawn under it, the ball shows through)
+            r = (rad if giant else BR) * 2 + 44
+            d.rounded_rectangle([cx - r, cy - r, cx + r, cy + r], 22, fill=(170, 230, 255, 235), outline=(255, 255, 255, 255), width=8)
+            d.line([cx - r * 0.6, cy - r * 0.75, cx - r * 0.1, cy - r * 0.75], fill=(255, 255, 255, 255), width=8)
         c = shade(TEAMS[t][1], 1.15)
         if rad > BR * 1.15:      # a powered-up ball in the final round is drawn like a giant one
             giant = True
@@ -609,6 +648,8 @@ def effects_active(tnow):
         if e["type"] == "hammer" and e["t1"] <= tnow < e["t1"] + 0.7:
             return True
         if e["type"] == "shield" and e["t0"] <= tnow < e["t1"] + 0.5:
+            return True
+        if e["type"] == "freeze" and e["t0"] <= tnow < e["t1"] + 0.5:
             return True
     return WIN is not None and BATTLE <= tnow < BATTLE + SWEEP + 0.3
 
@@ -711,6 +752,43 @@ def draw_effects(img, tnow):
                     d.polygon(tri, fill=c2 + (int(230 * (1 - k)),))
                 if k < 0.25:
                     d.ellipse([x - R, y - R, x + R, y + R], outline=(255, 255, 255, int(255 * (1 - k / 0.25))), width=14)
+        elif e["type"] == "freeze" and e["t0"] <= tnow < e["t1"] + 0.5:
+            fr = random.Random(e["seed"])
+            if tnow < e["t1"]:
+                age = tnow - e["t0"]
+                # a cold blue wash over the whole board, strongest at the start
+                d.rectangle([AX, AY, AX + AS, AY + AS], fill=(140, 210, 255, int(45 + 25 * max(0, 1 - age / 0.4))))
+                for (ci, cj, depth) in e["cells"]:
+                    show = (depth - 1) * 0.28 + fr.uniform(0, 0.2)         # the ice creeps in, ring by ring
+                    jit = fr.uniform(0, 6.28)
+                    if age < show:
+                        continue
+                    k = min(1.0, 0.25 + (age - show) / 0.18)
+                    x0, y0 = AX + ci * CS, AY + cj * CS
+                    m = (1 - k) * CS / 2
+                    d.rounded_rectangle([x0 + m + 1, y0 + m + 1, x0 + CS - m - 1, y0 + CS - m - 1], 5,
+                                        fill=(200, 240, 255, 215), outline=(255, 255, 255, 255), width=3)
+                    if k >= 1:          # a glint on each ice tile
+                        g = 0.5 + 0.5 * math.sin(tnow * 9 + jit)
+                        d.line([x0 + 8, y0 + 10, x0 + CS * 0.45, y0 + 10], fill=(255, 255, 255, int(255 * g)), width=4)
+                if e["t1"] - tnow < 0.5:  # cracks right before it breaks
+                    a = int(255 * (1 - (e["t1"] - tnow) / 0.5))
+                    for (ci, cj, depth) in e["cells"][::3]:
+                        x0, y0 = AX + (ci + 0.5) * CS, AY + (cj + 0.5) * CS
+                        ang = fr.uniform(0, 6.28)
+                        d.line([x0 - math.cos(ang) * CS * 0.5, y0 - math.sin(ang) * CS * 0.5,
+                                x0 + math.cos(ang) * CS * 0.5, y0 + math.sin(ang) * CS * 0.5], fill=(60, 120, 170, a), width=3)
+            else:                       # shatter: ice shards burst off every tile
+                k = (tnow - e["t1"]) / 0.5
+                for (ci, cj, depth) in e["cells"][::2]:
+                    x0, y0 = AX + (ci + 0.5) * CS, AY + (cj + 0.5) * CS
+                    ang = fr.uniform(0, 6.28)
+                    dist = CS * (0.3 + 1.6 * ease_out(k)) * fr.uniform(0.6, 1.2)
+                    sx, sy = x0 + math.cos(ang) * dist, y0 + math.sin(ang) * dist - 60 * k
+                    sz = fr.uniform(9, 17) * (1 - 0.5 * k)
+                    rot = fr.uniform(0, 6.28) + k * 7
+                    d.polygon([(sx + math.cos(rot + j * 2.1) * sz, sy + math.sin(rot + j * 2.1) * sz) for j in range(3)],
+                              fill=(210, 245, 255, int(240 * (1 - k))))
     if WIN is not None and BATTLE <= tnow < BATTLE + SWEEP + 0.3:   # knockout shockwave
         k = min(1.0, (tnow - BATTLE) / SWEEP)
         R = max(30.0, DMAX * (1 - (1 - k) ** 2))
@@ -987,6 +1065,7 @@ PREVIEW_AT = sorted({int(1.0 * FPS)} | {int((p["t0"] + 0.35) * FPS) for p in pow
                     | {int((e["t0"] + 0.25) * FPS) for e in effects if e["type"] == "hammer"}
                     | {int((e["t1"] + 0.1) * FPS) for e in effects if e["type"] in ("hammer", "shield")}
                     | {int((e["t0"] + 0.03) * FPS) for e in effects if e["type"] == "bolt"}
+                    | {int(t * FPS) for e in effects if e["type"] == "freeze" for t in (e["t0"] + 1.2, e["t1"] - 0.2, e["t1"] + 0.15)}
                     | {int((OT_START + 0.3) * FPS), int((OT_START + 2.5) * FPS), int((BATTLE - 0.4) * FPS)}
                     | {int((BATTLE + 0.6) * FPS), int((SIM_END + 1.4) * FPS)})
 INTRO_F = int(round(INTRO * FPS))
